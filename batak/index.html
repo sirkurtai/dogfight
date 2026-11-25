@@ -29,16 +29,18 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 
 #game{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 42%,#3aa24a 0%,#2a8a3b 45%,#1d6e2d 100%)}
 #handNo{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:10px;font-size:15px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
-#sideBtns{position:absolute;right:8px;bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 10px);display:flex;flex-direction:column;gap:8px}
+#sideBtns{position:absolute;right:6px;z-index:3;bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 10px);display:flex;flex-direction:column;gap:8px}
 #sideBtns button{width:38px;height:38px;border-radius:8px;border:2px solid #e9d7b9;background:#5a3418;color:#fff;font-size:18px}
 .plate{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 14px;border-radius:12px;
   background:linear-gradient(#8a5530,#5c3217);border:2px solid #e6cfa6;box-shadow:0 2px 6px rgba(0,0,0,.45);font-size:15px;font-weight:800;color:#fff;white-space:nowrap;z-index:2}
 .plate .tk{font-size:12px;font-weight:700;color:#ffe9a8}
 .plate.turn{border-color:#ffe066;box-shadow:0 0 12px #ffe066,0 2px 6px rgba(0,0,0,.45)}
-#p2{left:50%;top:calc(env(safe-area-inset-top) + 4px);transform:translateX(-50%)}
-#p1{left:calc(100% - env(safe-area-inset-right) - 28px);top:44%;transform:translate(-50%,-50%) rotate(-90deg)}
-#p3{left:calc(env(safe-area-inset-left) + 28px);top:44%;transform:translate(-50%,-50%) rotate(90deg)}
-#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 6px)}
+#p2{left:50%;top:env(safe-area-inset-top);transform:translateX(-50%);border-top:0;border-radius:0 0 14px 14px;padding-top:7px}
+#p1{left:calc(100% - env(safe-area-inset-right) - 21px);top:44%;transform:translate(-50%,-50%) rotate(-90deg);border-top:0;border-radius:0 0 14px 14px}
+#p3{left:calc(env(safe-area-inset-left) + 21px);top:44%;transform:translate(-50%,-50%) rotate(90deg);border-top:0;border-radius:0 0 14px 14px}
+#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 2px);border-bottom:0;border-radius:14px 14px 0 0}
+#myTk{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 52px);font-size:15px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+#p0 .tk{display:none}
 #center{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
 #trumpBox{display:flex;gap:10px;padding:8px 14px;border:2px solid rgba(0,0,0,.45);border-radius:6px;background:rgba(0,0,0,.18)}
 #trumpBox span{font-size:30px;line-height:1;width:32px;text-align:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
@@ -76,7 +78,7 @@ th{font-size:12px}
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 3 · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 4 · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -131,7 +133,8 @@ th{font-size:12px}
   <div id="trick"></div>
   <div id="msg" hidden></div>
   <div class="plate" id="p0"><span class="nm"></span><span class="tk"></span></div>
-  <div id="sideBtns"><button id="bScore" title="Puanlar">☰</button></div>
+  <div id="myTk"></div>
+  <div id="sideBtns"><button id="bSort" title="Sırala">⇅</button><button id="bScore" title="Ayarlar">⚙</button></div>
   <div id="hand"></div>
   <div id="panel" hidden></div>
   <div id="ovl" hidden><div class="in" id="ovlIn"></div></div>
@@ -491,7 +494,7 @@ $('bShare').onclick = () => {
 };
 
 /* ======================= ÇİZİM ======================= */
-let selCard = null;
+let selCard = null, sortMode = 0;   // 0: renk, 1: değer
 const rel = s => (s - V.you + 4) % 4;      // 0 ben, 1 sağ, 2 karşı, 3 sol (oyun sağa doğru döner)
 function cardEl(c) {
   const d = document.createElement('div');
@@ -511,6 +514,7 @@ function render() {
   $('lobby').hidden = true; $('game').hidden = false;
   const me = V.you, W = innerWidth;
   $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
+  { const b = V.bids[me]; $('myTk').textContent = V.mode === 'koz' ? (b != null ? `${b} : ${V.tricks[me]}` : '') : `${V.tricks[me]}${me === V.highBidder && V.phase !== 'bid' ? ' / ' + V.highBid : ''}`; }
   $('trumpBox').innerHTML = SUITS.map(s => `<span class="${V.trump ? (s === V.trump ? 'on' : 'off') : ''}" style="color:${s === 'H' || s === 'D' ? '#e0182b' : '#111'}">${SYM[s]}</span>`).join('');
   $('info').textContent = V.mode === 'koz' ? 'Koz Maça' : (V.highBidder != null && V.phase !== 'bid' ? `İhale: ${V.names[V.highBidder]} ${V.highBid}` : 'İhaleli');
   for (let s = 0; s < 4; s++) {
@@ -536,7 +540,8 @@ function render() {
   }
 
   // elim
-  const hand = V.hand || [];
+  let hand = V.hand || [];
+  if (sortMode === 1) hand = hand.slice().sort((a, b) => rankOf(b) - rankOf(a) || SUITS.indexOf(suitOf(a)) - SUITS.indexOf(suitOf(b)));
   const n = hand.length || 1;
   const rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
   const cw = Math.min(W * 0.22, 96, (W - 12) / (perRow * 0.72 + 0.28));
@@ -637,10 +642,12 @@ $('bScore').onclick = () => {
   if (!V) return;
   scoreOpen = true;
   $('ovl').hidden = false;
-  $('ovlIn').innerHTML = '<h3 style="text-align:center">Puan tablosu</h3>' + scoreTable() + '<small class="hint">* ihaleyi alan</small><button class="btn" id="bClose">Kapat</button>';
+  $('ovlIn').innerHTML = '<h3 style="text-align:center">Puan tablosu</h3>' + scoreTable() + '<small class="hint">* ihaleyi alan</small><button class="btn" id="bClose">Oyuna dön</button><button class="btn dark" id="bQuit">Oyundan çık (ana menü)</button>';
   $('bClose').onclick = () => { scoreOpen = false; $('ovl').hidden = true; };
+  $('bQuit').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
 };
 addEventListener('resize', render);
+$('bSort').onclick = () => { sortMode = 1 - sortMode; render(); };
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
