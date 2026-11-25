@@ -70,7 +70,8 @@ a{color:#8fb4ff}
     <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
     <button class="btn" id="bJoin">Katıl</button>
-    <p style="text-align:center;margin-top:14px;font-size:13px;opacity:.75">Kontroller: sol joystick ile yön (yukarı = burun yukarı), sağda GAZ ve ATEŞ. Ortadaki + nişangâhtır.</p>
+    <p style="text-align:center;margin-top:14px;font-size:13px;opacity:.8">Kontroller: joystick sağ-sol = yatış (360°, tono atılabilir), yukarı-aşağı = burun. Dönmek için yatır ve çek. Sağda GAZ ve ATEŞ, ortadaki + nişangâh.</p>
+    <label style="display:flex;gap:10px;align-items:center;justify-content:center;font-size:14px"><input type="checkbox" id="inv" style="width:22px;height:22px"> Gerçek pilot kontrolü (aşağı çek = burun yukarı)</label>
     <p style="text-align:center"><a href="../">2D versiyona geç</a></p>
   </div>
   <div class="box" id="pHost" hidden>
@@ -110,6 +111,8 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* ================= Ağ (PeerJS) ================= */
+let invert = false;
+try { invert = localStorage.getItem('df_inv') === '1'; } catch (e) {}
 let peer = null, conn = null, isHost = false, running = false, solo = false, lv = 1, goal = 5;
 const PREFIX = 'sirkurtai-dogfight3d-';
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -159,6 +162,8 @@ function joinRoom(code) {
   peer.on('open', () => bindConn(peer.connect(PREFIX + code, { reliable: true, serialization: 'json' })));
   peer.on('error', peerErr);
 }
+$('inv').checked = invert;
+$('inv').onchange = () => { invert = $('inv').checked; try { localStorage.setItem('df_inv', invert ? '1' : '0'); } catch (e) {} };
 $('bHost').onclick = hostRoom;
 document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
   goal = +b.dataset.n;
@@ -297,17 +302,31 @@ function spawn() {
   me = { pos: new THREE.Vector3(isHost ? 40 : -40, 220, z), yaw: isHost ? 0 : Math.PI, pitch: 0, roll: 0, hp: 3, cd: 0, speed: 130, boost: false };
   op = { pos: new THREE.Vector3(isHost ? -40 : 40, 220, -z), tp: null, yaw: isHost ? Math.PI : 0, pitch: 0, roll: 0, ty: 0, tpi: 0, tr: 0, hp: 3, boost: false };
   op.tp = op.pos.clone(); op.ty = op.yaw;
+  me.q = eulerQ(me.yaw, 0, 0); op.q = eulerQ(op.yaw, 0, 0); op.tq = op.q.clone();
   for (const b of bullets.concat(opBullets)) scene.remove(b.m);
   bullets = []; opBullets = [];
   over = false;
   myJet.visible = opJet.visible = true;
-  camera.position.copy(me.pos).add(new THREE.Vector3(0, 10, isHost ? 45 : -45));
+  camera.position.copy(me.pos).add(new THREE.Vector3(0, 10, isHost ? 45 : -45)); camera.up.set(0, 1, 0);
   $('warn').textContent = '';
   $('reset').hidden = true;
   $('menu').hidden = true;
   noteT = 0;
 }
 
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const fwdQ = q => V3(0, 0, -1).applyQuaternion(q);
+const upQ = q => V3(0, 1, 0).applyQuaternion(q);
+const rightQ = q => V3(1, 0, 0).applyQuaternion(q);
+const eulerQ = (yaw, pitch, roll) => new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'YXZ'));
+const AX = V3(1, 0, 0), AY = V3(0, 1, 0), AZ = V3(0, 0, 1);
+function rotLocal(q, axis, ang) { q.multiply(new THREE.Quaternion().setFromAxisAngle(axis, ang)); }
+function rotWorld(q, axis, ang) { q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, ang)); }
+function steerToward(q, dir, maxAng) {   // burnu verilen yöne doğru çevir (sınır/irtifa koruması)
+  const f = fwdQ(q), ax = f.clone().cross(dir);
+  if (ax.lengthSq() < 1e-8) { if (f.dot(dir) > 0) return; ax.copy(upQ(q)); }
+  rotWorld(q, ax.normalize(), Math.min(maxAng, f.angleTo(dir)));
+}
 function fwdOf(yaw, pitch) {
   return new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
 }
@@ -363,15 +382,15 @@ function winKill() {
 function respawnMe() {
   const a = Math.random() * Math.PI * 2;
   me.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
-  me.yaw = a; me.pitch = 0; me.roll = 0; me.hp = 3; me.dead = false; me.speed = 130;
+  me.yaw = a; me.pitch = 0; me.roll = 0; me.hp = 3; me.dead = false; me.speed = 140; me.q = eulerQ(a, 0, 0);
   myJet.visible = true;
-  camera.position.copy(me.pos).add(new THREE.Vector3(Math.sin(a) * 45, 10, Math.cos(a) * 45));
-  send({ t: 're', p: [me.pos.x, me.pos.y, me.pos.z], r: [me.yaw, 0, 0] });
+  camera.position.copy(me.pos).add(new THREE.Vector3(Math.sin(a) * 45, 10, Math.cos(a) * 45)); camera.up.set(0, 1, 0);
+  send({ t: 're', p: [me.pos.x, me.pos.y, me.pos.z], r: me.q.toArray() });
 }
 function respawnBot() {
   const a = Math.atan2(me.pos.x, me.pos.z) + Math.PI + (Math.random() - 0.5);
   op.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
-  op.yaw = a; op.pitch = 0; op.roll = 0; op.hp = 3; op.dead = false;
+  op.yaw = a; op.pitch = 0; op.roll = 0; op.hp = 3; op.dead = false; op.q = eulerQ(a, 0, 0);
   opJet.visible = true;
 }
 
@@ -387,7 +406,7 @@ function botUpdate(dt) {
   op.jt = (op.jt || 0) + dt;
   if (op.dead) return;
   // hedef: oyuncunun biraz önü (öncül nişan)
-  const myVel = fwdOf(me.yaw, me.pitch).multiplyScalar(me.speed);
+  const myVel = fwdQ(me.q).multiplyScalar(me.speed);
   const d0 = me.pos.distanceTo(op.pos);
   const lead = me.pos.clone().addScaledVector(myVel, Math.min(1.2, d0 / 900));
   const to = lead.sub(op.pos);
@@ -409,6 +428,7 @@ function botUpdate(dt) {
   op.boost = d0 > 600;
   op.speed = op.boost ? B.speed + 60 : B.speed;
   op.pos.addScaledVector(fwdOf(op.yaw, op.pitch), op.speed * dt);
+  op.q = eulerQ(op.yaw, op.pitch, op.roll);
   op.pos.y = Math.max(op.pos.y, 8);
   // ateş
   const f = fwdOf(op.yaw, op.pitch);
@@ -425,7 +445,7 @@ function recv(m) {
   if (!me) return;
   if (m.t === 's') {
     op.tp.set(m.p[0], m.p[1], m.p[2]);
-    op.ty = m.r[0]; op.tpi = m.r[1]; op.tr = m.r[2]; op.boost = m.b;
+    op.tq.fromArray(m.r); op.boost = m.b;
   } else if (m.t === 'b') {
     addBullet(opBullets, opBulletMat, m.p, m.v);
   } else if (m.t === 'hit') {
@@ -434,7 +454,7 @@ function recv(m) {
     winKill();
   } else if (m.t === 're') {
     op.tp.set(m.p[0], m.p[1], m.p[2]); op.pos.copy(op.tp);
-    op.yaw = op.ty = m.r[0]; op.pitch = op.tpi = 0; op.roll = op.tr = 0;
+    op.q.fromArray(m.r); op.tq.copy(op.q);
     op.hp = 3; op.dead = false; opJet.visible = true;
   } else if (m.t === 'rematch') {
     newMatch();
@@ -454,24 +474,31 @@ function update(dt) {
   if (!over && !me.dead) {
     const jx = clamp(joy.x + (keys.R ? 1 : 0) - (keys.L ? 1 : 0), -1, 1);
     const jy = clamp(joy.y + (keys.D ? 1 : 0) - (keys.U ? 1 : 0), -1, 1);
-    me.yaw -= jx * 1.35 * dt;
-    me.pitch = clamp(me.pitch - jy * 1.1 * dt, -1.15, 1.15);
-    me.roll += (-jx * 0.85 - me.roll) * Math.min(1, dt * 5);
+    // 6 eksenli uçuş: sağ-sol = yatış (roll, sınırsız), yukarı-aşağı = yunuslama (pitch, sınırsız → takla)
+    const py = invert ? jy : -jy;
+    rotLocal(me.q, AZ, -jx * 3.3 * dt);
+    rotLocal(me.q, AX, py * 1.75 * dt);
+    // koordineli dönüş: uçak yatıkken burun yavaşça yatış yönüne döner
+    rotWorld(me.q, AY, rightQ(me.q).y * 0.55 * dt);
 
+    let f = fwdQ(me.q);
+    const flat = V3(f.x, 0, f.z); if (flat.lengthSq() < 1e-4) flat.copy(upQ(me.q).setY(0)); flat.normalize();
     const hd = Math.hypot(me.pos.x, me.pos.z);
     if (hd > ARENA) {
-      const want = Math.atan2(me.pos.x, me.pos.z);
-      me.yaw += clamp(wrapA(want - me.yaw), -1.6 * dt, 1.6 * dt);
+      steerToward(me.q, V3(-me.pos.x, 0, -me.pos.z).normalize(), 1.4 * dt);
       warn = 'Alan sınırı! Geri dönülüyor';
     }
-    if (me.pos.y < MIN_ALT) { me.pitch = Math.max(me.pitch, 0.35); warn = 'Çok alçak!'; }
-    if (me.pos.y > MAX_ALT) { me.pitch = Math.min(me.pitch, -0.25); warn = 'Azami irtifa'; }
+    if (me.pos.y < MIN_ALT) { steerToward(me.q, flat.clone().add(V3(0, 0.8, 0)).normalize(), 2.2 * dt); warn = 'Çok alçak! Çek!'; }
+    if (me.pos.y > MAX_ALT) { steerToward(me.q, flat.clone().add(V3(0, -0.5, 0)).normalize(), 1.5 * dt); warn = 'Azami irtifa'; }
+    me.q.normalize();
+    f = fwdQ(me.q);
 
     me.boost = !!(keys.T || tk.T);
-    me.speed += ((me.boost ? 210 : 130) - me.speed) * Math.min(1, dt * 2);
-    const f = fwdOf(me.yaw, me.pitch);
+    me.speed += ((me.boost ? 225 : 140) - me.speed) * Math.min(1, dt * 0.9);
+    me.speed = clamp(me.speed - f.y * 55 * dt, 85, 300);   // tırmanınca yavaşla, dalınca hızlan
     me.pos.addScaledVector(f, me.speed * dt);
     me.pos.y = Math.max(me.pos.y, 8);
+    me.yaw = Math.atan2(-f.x, -f.z);
 
     me.cd -= dt;
     if ((keys.F || tk.F) && me.cd <= 0) {
@@ -487,9 +514,7 @@ function update(dt) {
   else { // rakibi yumuşak takip
     const k = Math.min(1, dt * 12);
     op.pos.lerp(op.tp, k);
-    op.yaw += wrapA(op.ty - op.yaw) * k;
-    op.pitch += (op.tpi - op.pitch) * k;
-    op.roll += (op.tr - op.roll) * k;
+    op.q.slerp(op.tq, k);
   }
 
   // mermiler
@@ -522,21 +547,22 @@ function update(dt) {
   sendT += dt;
   if (sendT > 0.05) {
     sendT = 0;
-    send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: [me.yaw, me.pitch, me.roll], b: me.boost });
+    send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: me.q.toArray(), b: me.boost });
   }
   noteT -= dt;
   if (!over) $('warn').textContent = noteT > 0 ? note : warn;
 }
 
 function render() {
-  myJet.position.copy(me.pos); myJet.rotation.set(me.pitch, me.yaw, me.roll);
-  opJet.position.copy(op.pos); opJet.rotation.set(op.pitch, op.yaw, op.roll);
+  myJet.position.copy(me.pos); myJet.quaternion.copy(me.q);
+  opJet.position.copy(op.pos); opJet.quaternion.copy(op.q);
   myJet.userData.flame.scale.set(1, 1, me.boost ? 1.6 : 0.6);
   opJet.userData.flame.scale.set(1, 1, op.boost ? 1.6 : 0.6);
 
-  const f = fwdOf(me.yaw, me.pitch);
-  const camT = me.pos.clone().addScaledVector(f, -42); camT.y += 11;
-  camera.position.lerp(camT, 1 - Math.exp(-(1 / 60) * 9));
+  const f = fwdQ(me.q), u = upQ(me.q);
+  const camT = me.pos.clone().addScaledVector(f, -40).addScaledVector(u, 10);
+  camera.position.lerp(camT, 0.16);
+  camera.up.lerp(u, 0.12).normalize();
   camera.lookAt(me.pos.clone().addScaledVector(f, 120));
   camera.updateMatrixWorld();
 
