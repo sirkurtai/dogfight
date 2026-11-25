@@ -4,6 +4,8 @@
 
 Oyna: https://sirkurtai.github.io/dogfight/
 
+Solo: Ana sayfada Kolay / Orta / Zor seçip bilgisayara karşı oyna.
+
 1. Bir telefonda **Oda Kur**a bas.
 2. **Linki Paylaş** ile linki arkadaşına gönder (ya da 5 haneli oda kodunu söyle).
 3. Arkadaşın linke tıklayınca oyun başlar.

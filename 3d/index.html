@@ -49,6 +49,13 @@ a{color:#8fb4ff}
   <h1>✈ Dogfight 3D</h1>
   <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
+    <p style="text-align:center">Tek başına oyna (bilgisayara karşı):</p>
+    <div style="display:flex;gap:8px">
+      <button class="btn solo" data-lv="0" style="background:#2f9e6a">Kolay</button>
+      <button class="btn solo" data-lv="1" style="background:#c98a1b">Orta</button>
+      <button class="btn solo" data-lv="2" style="background:#c23b4b">Zor</button>
+    </div>
+    <p style="text-align:center;margin-top:10px">Arkadaşınla oyna:</p>
     <button class="btn" id="bHost">Oda Kur</button>
     <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
@@ -81,6 +88,7 @@ a{color:#8fb4ff}
     <button class="kb fire" data-k="F">ATEŞ</button>
   </div>
   <button class="btn small" id="reset" hidden>Yeni tur</button>
+  <button class="btn small" id="menu" hidden style="top:calc(58% + 60px);position:absolute;left:50%;transform:translateX(-50%);background:#3a4a70">Ana menü</button>
 </div>
 
 <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
@@ -91,7 +99,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* ================= Ağ (PeerJS) ================= */
-let peer = null, conn = null, isHost = false, running = false;
+let peer = null, conn = null, isHost = false, running = false, solo = false, lv = 1;
 const PREFIX = 'sirkurtai-dogfight3d-';
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function status(t) { $('status').textContent = t; }
@@ -141,6 +149,7 @@ function joinRoom(code) {
   peer.on('error', peerErr);
 }
 $('bHost').onclick = hostRoom;
+document.querySelectorAll('.solo').forEach(b => b.onclick = () => { solo = true; isHost = true; lv = +b.dataset.lv; startGame(); });
 $('bJoin').onclick = () => joinRoom($('codeIn').value);
 $('bCopy').onclick = () => {
   const t = $('link'); t.select();
@@ -277,6 +286,7 @@ function spawn() {
   camera.position.copy(me.pos).add(new THREE.Vector3(0, 10, isHost ? 45 : -45));
   $('warn').textContent = '';
   $('reset').hidden = true;
+  $('menu').hidden = true;
 }
 
 function fwdOf(yaw, pitch) {
@@ -297,12 +307,73 @@ function flashHit() {
 function endRound(text) {
   $('warn').textContent = text;
   $('reset').hidden = false;
+  $('menu').hidden = false;
 }
 
 function addBullet(list, mat, p, v) {
   const m = new THREE.Mesh(bulletGeo, mat);
   m.position.set(p[0], p[1], p[2]); scene.add(m);
   list.push({ m, v: new THREE.Vector3(v[0], v[1], v[2]), t: 1.6 });
+}
+
+function takeHit() {
+  if (over) return;
+  me.hp--; flashHit();
+  if (me.hp <= 0) {
+    over = true; losses++;
+    explode(me.pos); myJet.visible = false;
+    send({ t: 'end' });
+    endRound('Vuruldun!');
+  }
+}
+function winRound() {
+  if (over) return;
+  over = true; wins++; op.hp = 0; explode(op.pos); opJet.visible = false; endRound('Kazandın!');
+}
+
+/* ================= Bilgisayar rakip (solo) ================= */
+const BOT = [ // kolay, orta, zor
+  { turn: 0.75, pitch: 0.6, cone: 0.05, cd: 0.45, range: 550, speed: 120, spread: 0.035 },
+  { turn: 1.05, pitch: 0.85, cone: 0.09, cd: 0.28, range: 700, speed: 135, spread: 0.018 },
+  { turn: 1.35, pitch: 1.1, cone: 0.13, cd: 0.17, range: 850, speed: 150, spread: 0.008 },
+];
+function botUpdate(dt) {
+  const B = BOT[lv];
+  op.cd = (op.cd || 0) - dt;
+  op.jt = (op.jt || 0) + dt;
+  if (over && op.hp <= 0) return;
+  // hedef: oyuncunun biraz önü (öncül nişan)
+  const myVel = fwdOf(me.yaw, me.pitch).multiplyScalar(me.speed);
+  const d0 = me.pos.distanceTo(op.pos);
+  const lead = me.pos.clone().addScaledVector(myVel, Math.min(1.2, d0 / 900));
+  const to = lead.sub(op.pos);
+  let wantYaw = Math.atan2(-to.x, -to.z);
+  let wantPitch = Math.asin(clamp(to.y / (to.length() || 1), -1, 1));
+  // oyuncu arkasındaysa zikzak yaparak kaçmaya çalış
+  const opF = fwdOf(op.yaw, op.pitch);
+  const toMe = me.pos.clone().sub(op.pos).normalize();
+  if (opF.dot(toMe) < -0.5 && d0 < 500) { wantYaw = op.yaw + Math.sin(op.jt * 1.7) * 1.2; wantPitch = Math.sin(op.jt * 1.1) * 0.5; }
+  // sınırlar
+  if (Math.hypot(op.pos.x, op.pos.z) > ARENA) wantYaw = Math.atan2(op.pos.x, op.pos.z);
+  if (op.pos.y < MIN_ALT + 30) wantPitch = Math.max(wantPitch, 0.4);
+  if (op.pos.y > MAX_ALT - 30) wantPitch = Math.min(wantPitch, -0.3);
+  wantPitch = clamp(wantPitch, -1.0, 1.0);
+  const dy = clamp(wrapA(wantYaw - op.yaw), -B.turn * dt, B.turn * dt);
+  op.yaw += dy;
+  op.pitch += clamp(wantPitch - op.pitch, -B.pitch * dt, B.pitch * dt);
+  op.roll += (clamp(dy / (B.turn * dt || 1), -1, 1) * 0.85 - op.roll) * Math.min(1, dt * 5);
+  op.boost = d0 > 600;
+  op.speed = op.boost ? B.speed + 60 : B.speed;
+  op.pos.addScaledVector(fwdOf(op.yaw, op.pitch), op.speed * dt);
+  op.pos.y = Math.max(op.pos.y, 8);
+  // ateş
+  const f = fwdOf(op.yaw, op.pitch);
+  if (!over && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
+    op.cd = B.cd * (0.8 + Math.random() * 0.5);
+    const dir = f.clone().add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5), (Math.random() - .5)).multiplyScalar(B.spread * 2)).normalize();
+    const p = op.pos.clone().addScaledVector(dir, 13), v = dir.multiplyScalar(op.speed + 750);
+    addBullet(opBullets, opBulletMat, [p.x, p.y, p.z], [v.x, v.y, v.z]);
+  }
 }
 
 function recv(m) {
@@ -313,17 +384,9 @@ function recv(m) {
   } else if (m.t === 'b') {
     addBullet(opBullets, opBulletMat, m.p, m.v);
   } else if (m.t === 'hit') {
-    if (!over) {
-      me.hp--; flashHit();
-      if (me.hp <= 0) {
-        over = true; losses++;
-        explode(me.pos); myJet.visible = false;
-        send({ t: 'end' });
-        endRound('Vuruldun!');
-      }
-    }
+    takeHit();
   } else if (m.t === 'end') {
-    if (!over) { over = true; wins++; op.hp = 0; explode(op.pos); opJet.visible = false; endRound('Kazandın!'); }
+    winRound();
   } else if (m.t === 'reset') {
     spawn();
   }
@@ -369,23 +432,30 @@ function update(dt) {
     }
   }
 
-  // rakibi yumuşak takip
-  const k = Math.min(1, dt * 12);
-  op.pos.lerp(op.tp, k);
-  op.yaw += wrapA(op.ty - op.yaw) * k;
-  op.pitch += (op.tpi - op.pitch) * k;
-  op.roll += (op.tr - op.roll) * k;
+  if (solo) botUpdate(dt);
+  else { // rakibi yumuşak takip
+    const k = Math.min(1, dt * 12);
+    op.pos.lerp(op.tp, k);
+    op.yaw += wrapA(op.ty - op.yaw) * k;
+    op.pitch += (op.tpi - op.pitch) * k;
+    op.roll += (op.tr - op.roll) * k;
+  }
 
   // mermiler
   for (const b of bullets) {
     const prev = b.m.position.clone();
     b.m.position.addScaledVector(b.v, dt); b.t -= dt;
     if (!over && op.hp > 0 && opJet.visible && segDist(prev, b.m.position, op.pos) < HIT_R) {
-      b.t = 0; op.hp--; send({ t: 'hit' });
+      b.t = 0; op.hp--;
       explode(b.m.position.clone()); fx[fx.length - 1].small = true;
+      if (solo) { if (op.hp <= 0) winRound(); } else send({ t: 'hit' });
     }
   }
-  for (const b of opBullets) { b.m.position.addScaledVector(b.v, dt); b.t -= dt; }
+  for (const b of opBullets) {
+    const prev = b.m.position.clone();
+    b.m.position.addScaledVector(b.v, dt); b.t -= dt;
+    if (solo && !over && myJet.visible && segDist(prev, b.m.position, me.pos) < HIT_R) { b.t = 0; takeHit(); }
+  }
   for (const list of [bullets, opBullets]) {
     for (let i = list.length - 1; i >= 0; i--) if (list[i].t <= 0) { scene.remove(list[i].m); list.splice(i, 1); }
   }
@@ -445,7 +515,7 @@ function render() {
     arr.style.transform = 'rotate(' + (Math.PI / 2 - ang) + 'rad)';
   }
 
-  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   Rakip ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses}`;
+  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   ${solo ? ['Kolay', 'Orta', 'Zor'][lv] + ' bot' : 'Rakip'} ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses}`;
   $('info').textContent = `İrtifa ${Math.round(me.pos.y)}  ·  Hız ${Math.round(me.speed)}  ·  Rakip ${dist} m`;
   renderer.render(scene, camera);
 }
@@ -486,6 +556,7 @@ addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = t
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 
 $('reset').onclick = () => { send({ t: 'reset' }); spawn(); };
+$('menu').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
 
 /* ================= Döngü ================= */
 let lastT = performance.now();

@@ -37,6 +37,13 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   <h1>✈ Dogfight</h1>
   <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
+    <p style="text-align:center">Tek başına oyna (bilgisayara karşı):</p>
+    <div style="display:flex;gap:8px">
+      <button class="btn solo" data-lv="0" style="background:#2f9e6a">Kolay</button>
+      <button class="btn solo" data-lv="1" style="background:#c98a1b">Orta</button>
+      <button class="btn solo" data-lv="2" style="background:#c23b4b">Zor</button>
+    </div>
+    <p style="text-align:center;margin-top:10px">Arkadaşınla oyna:</p>
     <button class="btn" id="bHost">Oda Kur</button>
     <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
@@ -73,7 +80,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 const $ = id => document.getElementById(id);
 const W = 1000, H = 640;
 const cv = $('c'), ctx = cv.getContext('2d');
-let peer = null, conn = null, isHost = false, running = false;
+let peer = null, conn = null, isHost = false, running = false, solo = false, lv = 1, opB = [];
 let me, op, bullets = [], wins = 0, losses = 0, over = false, msg = '';
 let sendT = 0;
 const keys = {};
@@ -132,6 +139,7 @@ function joinRoom(code) {
 }
 
 $('bHost').onclick = hostRoom;
+document.querySelectorAll('.solo').forEach(b => b.onclick = () => { solo = true; isHost = true; lv = +b.dataset.lv; startGame(); });
 $('bJoin').onclick = () => joinRoom($('codeIn').value);
 $('bCopy').onclick = () => {
   const t = $('link'); t.select();
@@ -166,7 +174,7 @@ function startGame() {
 function spawn() {
   me = { x: isHost ? 180 : 820, y: 320, a: isHost ? 0 : Math.PI, hp: 3, cd: 0 };
   op = { x: isHost ? 820 : 180, y: 320, a: isHost ? Math.PI : 0, hp: 3 };
-  bullets = [];
+  bullets = []; opB = [];
   over = false;
   msg = '';
   $('reset').hidden = true;
@@ -186,21 +194,43 @@ function endRound(text) {
   $('reset').hidden = false;
 }
 
+function takeHit() {
+  if (over) return;
+  me.hp--;
+  if (me.hp <= 0) { over = true; losses++; send({ t: 'end' }); endRound('Vuruldun'); }
+}
+function winRound() { if (!over) { over = true; wins++; op.hp = 0; endRound('Kazandın!'); } }
+
+const BOT = [
+  { turn: 1.8, cone: 0.12, cd: 0.6, sp: 200 },
+  { turn: 2.5, cone: 0.18, cd: 0.4, sp: 220 },
+  { turn: 3.1, cone: 0.25, cd: 0.28, sp: 245 },
+];
+function botUpdate(dt) {
+  if (op.hp <= 0) return;
+  const B = BOT[lv];
+  op.cd = (op.cd || 0) - dt; op.jt = (op.jt || 0) + dt;
+  const dx = wd(me.x, op.x, W), dy = wd(me.y, op.y, H), d = Math.hypot(dx, dy);
+  let want = Math.atan2(dy, dx);
+  const back = Math.cos(op.a - want) < -0.4 && d < 260;   // oyuncu arkada → zikzak
+  if (back) want = op.a + Math.sin(op.jt * 2) * 1.5;
+  let diff = Math.atan2(Math.sin(want - op.a), Math.cos(want - op.a));
+  op.a += Math.max(-B.turn * dt, Math.min(B.turn * dt, diff));
+  op.x = wrapX(op.x + Math.cos(op.a) * B.sp * dt);
+  op.y = wrapY(op.y + Math.sin(op.a) * B.sp * dt);
+  if (!over && !back && op.cd <= 0 && Math.abs(diff) < B.cone && d < 450) {
+    op.cd = B.cd * (0.8 + Math.random() * 0.5);
+    opB.push({ x: op.x + Math.cos(op.a) * 22, y: op.y + Math.sin(op.a) * 22, vx: Math.cos(op.a) * 620, vy: Math.sin(op.a) * 620, t: 1.2 });
+  }
+}
+
 function recv(m) {
   if (m.t === 's') {
     op.x = m.x; op.y = m.y; op.a = m.a;
   } else if (m.t === 'hit') {           // rakip beni vurdu
-    if (!over) {
-      me.hp--;
-      if (me.hp <= 0) {
-        over = true;
-        losses++;
-        send({ t: 'end' });
-        endRound('Vuruldun');
-      }
-    }
+    takeHit();
   } else if (m.t === 'end') {           // rakip öldü -> ben kazandım
-    if (!over) { over = true; wins++; endRound('Kazandın!'); }
+    winRound();
   } else if (m.t === 'reset') {
     spawn();
   }
@@ -237,10 +267,18 @@ function update(dt) {
     if (Math.hypot(wd(b.x, op.x, W), wd(b.y, op.y, H)) < 24) {
       b.hit = true;
       op.hp--;
-      send({ t: 'hit' });
+      if (solo) { if (op.hp <= 0) winRound(); } else send({ t: 'hit' });
     }
   }
   bullets = bullets.filter(b => b.t > 0 && !b.hit);
+  if (solo) {
+    botUpdate(dt);
+    for (const b of opB) {
+      b.x = wrapX(b.x + b.vx * dt); b.y = wrapY(b.y + b.vy * dt); b.t -= dt;
+      if (!over && Math.hypot(wd(b.x, me.x, W), wd(b.y, me.y, H)) < 24) { b.hit = true; takeHit(); }
+    }
+    opB = opB.filter(b => b.t > 0 && !b.hit);
+  }
 
   sendT += dt;
   if (sendT > 0.05) {
@@ -280,6 +318,9 @@ function draw() {
   ctx.strokeRect(0, 0, W, H);
 
   ctx.fillStyle = '#ffd166';
+  ctx.fillStyle = '#ff6b4a';
+  for (const b of opB) { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = '#ffd166';
   for (const b of bullets) {
     ctx.beginPath();
     ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
@@ -299,7 +340,7 @@ function draw() {
     ctx.fillText(msg, W / 2, H / 2);
   }
 
-  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp))}   Rakip ${'♥'.repeat(Math.max(0, op.hp))}   Skor ${wins}-${losses}`;
+  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp))}   ${solo ? ['Kolay', 'Orta', 'Zor'][lv] + ' bot' : 'Rakip'} ${'♥'.repeat(Math.max(0, op.hp))}   Skor ${wins}-${losses}`;
 }
 
 function resize() {
