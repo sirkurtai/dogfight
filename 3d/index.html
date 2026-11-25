@@ -24,19 +24,18 @@ a{color:#8fb4ff}
 .opt.sel{background:#2d6cdf;outline:2px solid #fff}
 #game{position:fixed;inset:0}
 #game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 132px);right:8px;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
-#info{position:absolute;top:calc(env(safe-area-inset-top) + 32px);left:calc(env(safe-area-inset-left) + 132px);right:8px;text-align:center;font-size:12px;font-weight:600;pointer-events:none;text-shadow:0 1px 3px #000;opacity:.9}
+#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 80px);right:8px;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
+#info{position:absolute;top:calc(env(safe-area-inset-top) + 32px);left:calc(env(safe-area-inset-left) + 80px);right:8px;text-align:center;font-size:12px;font-weight:600;pointer-events:none;text-shadow:0 1px 3px #000;opacity:.9}
 #warn{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:18px;font-weight:800;color:#ffd166;pointer-events:none;text-shadow:0 1px 3px #000}
 #cross{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none}
-#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
-#cross:before{left:21px;top:4px;width:2px;height:36px}
-#cross:after{top:21px;left:4px;height:2px;width:36px}
+#cross{width:30px;height:30px;margin:-15px 0 0 -15px;border:3px solid #ff2d3d;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,.7),inset 0 0 3px rgba(0,0,0,.5)}
+#cross:before{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:#ff2d3d}
 #tgt{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid #ff4d6d;border-radius:6px;pointer-events:none}
 #tgt span{position:absolute;top:48px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#ff4d6d;white-space:nowrap;text-shadow:0 1px 2px #000}
 #arrow{position:absolute;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #ff4d6d;margin:-11px 0 0 -12px;pointer-events:none;filter:drop-shadow(0 0 2px #000)}
 #flash{position:absolute;inset:0;background:#ff0033;opacity:0;pointer-events:none;transition:opacity .25s}
 #game{touch-action:none}
-#radar{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 8px);width:116px;height:116px;pointer-events:none}
+#radar{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 8px);width:64px;height:64px;pointer-events:none}
 #joyHint{position:absolute;left:0;bottom:0;width:50%;height:60%;pointer-events:none}
 #joy{pointer-events:none;position:absolute;left:calc(env(safe-area-inset-left) + 18px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);touch-action:none}
 #knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none}
@@ -52,6 +51,7 @@ a{color:#8fb4ff}
 
 <div id="lobby">
   <h1>✈ Dogfight 3D</h1>
+  <p style="font-size:12px;opacity:.6;margin-top:-8px">Sürüm 7 · takla &amp; tono</p>
   <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
     <p style="text-align:center">Kaç düşürmede maç bitsin? <small style="opacity:.7">(oyunu kuran belirler)</small></p>
@@ -396,9 +396,9 @@ function respawnBot() {
 
 /* ================= Bilgisayar rakip (solo) ================= */
 const BOT = [ // kolay, orta, zor
-  { turn: 0.75, pitch: 0.6, cone: 0.05, cd: 0.45, range: 550, speed: 120, spread: 0.035 },
-  { turn: 1.05, pitch: 0.85, cone: 0.09, cd: 0.28, range: 700, speed: 135, spread: 0.018 },
-  { turn: 1.35, pitch: 1.1, cone: 0.13, cd: 0.17, range: 850, speed: 150, spread: 0.008 },
+  { turn: 0.45, pitch: 0.35, cone: 0.035, cd: 0.9, range: 380, speed: 105, spread: 0.07, lead: 0, wander: 0.5 },
+  { turn: 0.9, pitch: 0.7, cone: 0.07, cd: 0.35, range: 600, speed: 130, spread: 0.025, lead: 0.6, wander: 0.2 },
+  { turn: 1.35, pitch: 1.1, cone: 0.13, cd: 0.17, range: 850, speed: 150, spread: 0.008, lead: 1, wander: 0 },
 ];
 function botUpdate(dt) {
   const B = BOT[lv];
@@ -408,14 +408,17 @@ function botUpdate(dt) {
   // hedef: oyuncunun biraz önü (öncül nişan)
   const myVel = fwdQ(me.q).multiplyScalar(me.speed);
   const d0 = me.pos.distanceTo(op.pos);
-  const lead = me.pos.clone().addScaledVector(myVel, Math.min(1.2, d0 / 900));
+  const lead = me.pos.clone().addScaledVector(myVel, B.lead * Math.min(1.2, d0 / 900));
   const to = lead.sub(op.pos);
   let wantYaw = Math.atan2(-to.x, -to.z);
   let wantPitch = Math.asin(clamp(to.y / (to.length() || 1), -1, 1));
   // oyuncu arkasındaysa zikzak yaparak kaçmaya çalış
   const opF = fwdOf(op.yaw, op.pitch);
   const toMe = me.pos.clone().sub(op.pos).normalize();
-  if (opF.dot(toMe) < -0.5 && d0 < 500) { wantYaw = op.yaw + Math.sin(op.jt * 1.7) * 1.2; wantPitch = Math.sin(op.jt * 1.1) * 0.5; }
+  // kolay/orta bot zaman zaman dikkatini kaybedip başıboş uçar
+  const wandering = (op.jt % 10) / 10 < B.wander;
+  if (wandering) { wantYaw = op.yaw + 0.35; wantPitch = 0.05; }
+  if (!wandering && opF.dot(toMe) < -0.5 && d0 < 500) { wantYaw = op.yaw + Math.sin(op.jt * 1.7) * 1.2; wantPitch = Math.sin(op.jt * 1.1) * 0.5; }
   // sınırlar
   if (Math.hypot(op.pos.x, op.pos.z) > ARENA) wantYaw = Math.atan2(op.pos.x, op.pos.z);
   if (op.pos.y < MIN_ALT + 30) wantPitch = Math.max(wantPitch, 0.4);
@@ -432,7 +435,7 @@ function botUpdate(dt) {
   op.pos.y = Math.max(op.pos.y, 8);
   // ateş
   const f = fwdOf(op.yaw, op.pitch);
-  if (!over && !me.dead && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
+  if (!wandering && !over && !me.dead && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
     op.cd = B.cd * (0.8 + Math.random() * 0.5);
     const dir = f.clone().add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5), (Math.random() - .5)).multiplyScalar(B.spread * 2)).normalize();
     const p = op.pos.clone().addScaledVector(dir, 13), v = dir.multiplyScalar(op.speed + 750);
