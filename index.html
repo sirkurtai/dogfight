@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dogfight</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#lobby{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;padding:20px 16px;overflow:auto}
+#lobby h1{font-size:28px;margin-top:8px}
+#status{font-size:14px;opacity:.8;text-align:center}
+.box{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px}
+.box p{font-size:14px;opacity:.9}
+textarea{width:100%;height:90px;background:#111a30;color:#e6edf7;border:1px solid #2a3a60;border-radius:10px;padding:8px;font-size:12px;font-family:monospace;user-select:text;-webkit-user-select:text}
+.btn{background:#2d6cdf;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:600;width:100%}
+.btn:active{opacity:.7}
+.btn.small{width:auto;padding:10px 18px;font-size:14px}
+#game{position:fixed;inset:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:0;right:0;text-align:center;font-size:15px;font-weight:600;pointer-events:none}
+#pad{position:absolute;left:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:12px}
+#pad2{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:12px}
+.kb{width:88px;height:88px;border-radius:50%;border:2px solid #3a5288;background:rgba(45,108,223,.35);color:#fff;font-size:16px;font-weight:700}
+.kb.fire{background:rgba(220,60,60,.4);border-color:#a13b3b}
+.kb:active,.kb.on{background:rgba(120,170,255,.6)}
+#reset{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+</style>
+</head>
+<body>
+
+<div id="lobby">
+  <h1>✈ Dogfight</h1>
+  <p id="status">İki telefonu aynı Wi-Fi'ye bağla, birinde oda kur, diğerinde odaya katıl.</p>
+  <div class="box" id="choose">
+    <button class="btn" id="bHost">Oda Kur</button>
+    <button class="btn" id="bJoin">Odaya Katıl</button>
+  </div>
+
+  <div class="box" id="pHost" hidden>
+    <p>1) Bu oda kodunu kopyala, diğer telefona gönder:</p>
+    <textarea id="hostOut" readonly></textarea>
+    <button class="btn" id="copy1">Kopyala</button>
+    <p>2) Diğer telefonun verdiği cevap kodunu buraya yapıştır:</p>
+    <textarea id="hostIn" placeholder="Cevap kodu"></textarea>
+    <button class="btn" id="bConnectHost">Bağlan</button>
+  </div>
+
+  <div class="box" id="pJoin" hidden>
+    <p>1) Diğer telefonun verdiği oda kodunu buraya yapıştır:</p>
+    <textarea id="joinIn" placeholder="Oda kodu"></textarea>
+    <button class="btn" id="bMakeAnswer">Cevap kodu üret</button>
+    <p>2) Bu cevap kodunu diğer telefona gönder:</p>
+    <textarea id="guestOut" readonly></textarea>
+    <button class="btn" id="copy2">Kopyala</button>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <canvas id="c"></canvas>
+  <div id="hud"></div>
+  <div id="pad">
+    <button class="kb" data-k="L">◀</button>
+    <button class="kb" data-k="R">▶</button>
+  </div>
+  <div id="pad2">
+    <button class="kb" data-k="T">GAZ</button>
+    <button class="kb fire" data-k="F">ATEŞ</button>
+  </div>
+  <button class="btn small" id="reset" hidden>Yeni tur</button>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const cfg = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const W = 1000, H = 640;
+const cv = $('c'), ctx = cv.getContext('2d');
+let pc = null, dc = null, isHost = false, running = false;
+let me, op, bullets = [], wins = 0, losses = 0, over = false, msg = '';
+let sendT = 0;
+const keys = {};
+let sc = 1;
+
+/* ---------- kod kodlama ---------- */
+const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const dec = s => JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
+
+function waitIce(p) {
+  return new Promise(res => {
+    if (p.iceGatheringState === 'complete') return res();
+    const f = () => { if (p.iceGatheringState === 'complete') { p.removeEventListener('icegatheringstatechange', f); res(); } };
+    p.addEventListener('icegatheringstatechange', f);
+    setTimeout(res, 5000);
+  });
+}
+
+function newPC() {
+  pc = new RTCPeerConnection(cfg);
+  pc.onconnectionstatechange = () => {
+    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState) && running) {
+      $('hud').textContent = 'Bağlantı koptu';
+    }
+  };
+}
+
+function bindDC(c) {
+  dc = c;
+  c.onopen = startGame;
+  c.onmessage = e => recv(JSON.parse(e.data));
+  c.onclose = () => { $('hud').textContent = 'Bağlantı kesildi'; };
+}
+
+function send(o) { if (dc && dc.readyState === 'open') dc.send(JSON.stringify(o)); }
+
+function copy(id) {
+  const t = $(id);
+  t.select();
+  if (navigator.clipboard) navigator.clipboard.writeText(t.value).catch(() => document.execCommand('copy'));
+  else document.execCommand('copy');
+}
+
+/* ---------- lobi ---------- */
+$('bHost').onclick = async () => {
+  isHost = true;
+  $('choose').hidden = true;
+  $('pHost').hidden = false;
+  newPC();
+  bindDC(pc.createDataChannel('g'));
+  const o = await pc.createOffer();
+  await pc.setLocalDescription(o);
+  await waitIce(pc);
+  $('hostOut').value = enc(pc.localDescription);
+};
+
+$('bConnectHost').onclick = async () => {
+  try {
+    await pc.setRemoteDescription(dec($('hostIn').value));
+    $('status').textContent = 'Bağlanılıyor...';
+  } catch (e) { alert('Cevap kodu hatalı'); }
+};
+
+$('bJoin').onclick = () => {
+  isHost = false;
+  $('choose').hidden = true;
+  $('pJoin').hidden = false;
+};
+
+$('bMakeAnswer').onclick = async () => {
+  newPC();
+  pc.ondatachannel = e => bindDC(e.channel);
+  try {
+    await pc.setRemoteDescription(dec($('joinIn').value));
+  } catch (e) { alert('Oda kodu hatalı'); return; }
+  const a = await pc.createAnswer();
+  await pc.setLocalDescription(a);
+  await waitIce(pc);
+  $('guestOut').value = enc(pc.localDescription);
+  $('status').textContent = 'Cevap kodunu diğer telefona gönder, bağlantı kurulunca oyun başlayacak.';
+};
+
+$('copy1').onclick = () => copy('hostOut');
+$('copy2').onclick = () => copy('guestOut');
+
+/* ---------- oyun ---------- */
+function startGame() {
+  $('lobby').hidden = true;
+  $('game').hidden = false;
+  running = true;
+  resize();
+  spawn();
+}
+
+function spawn() {
+  me = { x: isHost ? 180 : 820, y: 320, a: isHost ? 0 : Math.PI, hp: 3, cd: 0 };
+  op = { x: isHost ? 820 : 180, y: 320, a: isHost ? Math.PI : 0, hp: 3 };
+  bullets = [];
+  over = false;
+  msg = '';
+  $('reset').hidden = true;
+}
+
+function wd(a, b, L) { // sarmalı (wrap) mesafe farkı
+  let d = a - b;
+  if (d > L / 2) d -= L;
+  if (d < -L / 2) d += L;
+  return d;
+}
+function wrapX(x) { return ((x % W) + W) % W; }
+function wrapY(y) { return ((y % H) + H) % H; }
+
+function endRound(text) {
+  msg = text;
+  $('reset').hidden = false;
+}
+
+function recv(m) {
+  if (m.t === 's') {
+    op.x = m.x; op.y = m.y; op.a = m.a;
+  } else if (m.t === 'hit') {           // rakip beni vurdu
+    if (!over) {
+      me.hp--;
+      if (me.hp <= 0) {
+        over = true;
+        losses++;
+        send({ t: 'end' });
+        endRound('Vuruldun');
+      }
+    }
+  } else if (m.t === 'end') {           // rakip öldü -> ben kazandım
+    if (!over) { over = true; wins++; endRound('Kazandın!'); }
+  } else if (m.t === 'reset') {
+    spawn();
+  }
+}
+
+function update(dt) {
+  if (!me) return;
+  if (!over) {
+    const turn = (keys.L ? -1 : 0) + (keys.R ? 1 : 0);
+    me.a += turn * 3 * dt;
+    const sp = keys.T ? 340 : 230;
+    me.x = wrapX(me.x + Math.cos(me.a) * sp * dt);
+    me.y = wrapY(me.y + Math.sin(me.a) * sp * dt);
+
+    me.cd -= dt;
+    if (keys.F && me.cd <= 0) {
+      me.cd = 0.28;
+      bullets.push({
+        x: me.x + Math.cos(me.a) * 22, y: me.y + Math.sin(me.a) * 22,
+        vx: Math.cos(me.a) * 620, vy: Math.sin(me.a) * 620, t: 1.2
+      });
+    }
+  }
+
+  for (const b of bullets) {
+    b.x = wrapX(b.x + b.vx * dt);
+    b.y = wrapY(b.y + b.vy * dt);
+    b.t -= dt;
+  }
+
+  // Kendi mermilerimin rakibe isabetini ben tespit ederim
+  for (const b of bullets) {
+    if (b.hit || over || op.hp <= 0) continue;
+    if (Math.hypot(wd(b.x, op.x, W), wd(b.y, op.y, H)) < 24) {
+      b.hit = true;
+      op.hp--;
+      send({ t: 'hit' });
+    }
+  }
+  bullets = bullets.filter(b => b.t > 0 && !b.hit);
+
+  sendT += dt;
+  if (sendT > 0.05) {
+    sendT = 0;
+    send({ t: 's', x: me.x, y: me.y, a: me.a });
+  }
+}
+
+function drawPlane(p, col) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.a);
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(22, 0);
+  ctx.lineTo(-14, 11);
+  ctx.lineTo(-8, 0);
+  ctx.lineTo(-14, -11);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#0b1020';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(sc, 0, 0, sc, (cv.width - W * sc) / 2, (cv.height - H * sc) / 2);
+
+  ctx.strokeStyle = '#162240';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += 100) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = 0; y <= H; y += 100) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+  ctx.strokeStyle = '#3a5288';
+  ctx.strokeRect(0, 0, W, H);
+
+  ctx.fillStyle = '#ffd166';
+  for (const b of bullets) {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (op && op.hp > 0) drawPlane(op, '#ef476f');
+  drawPlane(me, '#06d6a0');
+
+  if (msg) {
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillRect(0, H / 2 - 40, W, 80);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 48px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(msg, W / 2, H / 2);
+  }
+
+  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp))}   Rakip ${'♥'.repeat(Math.max(0, op.hp))}   Skor ${wins}-${losses}`;
+}
+
+function resize() {
+  cv.width = innerWidth * devicePixelRatio;
+  cv.height = innerHeight * devicePixelRatio;
+  sc = Math.min(cv.width / W, cv.height / H);
+}
+addEventListener('resize', resize);
+
+/* ---------- kontroller ---------- */
+document.querySelectorAll('.kb').forEach(b => {
+  const k = b.dataset.k;
+  const on = e => { e.preventDefault(); keys[k] = true; };
+  const off = e => { e.preventDefault(); keys[k] = false; };
+  b.addEventListener('pointerdown', on);
+  b.addEventListener('pointerup', off);
+  b.addEventListener('pointercancel', off);
+  b.addEventListener('pointerleave', off);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+const KEYMAP = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'T', w: 'T', ' ': 'F', f: 'F' };
+addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
+addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$('reset').onclick = () => { send({ t: 'reset' }); spawn(); };
+
+/* ---------- döngü ---------- */
+let lastT = performance.now();
+function frame(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  if (running) { update(dt); draw(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
