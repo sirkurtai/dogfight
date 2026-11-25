@@ -27,30 +27,37 @@ input,select{width:100%;background:#0b3320;color:#fff;border:1px solid #3c8a62;b
 .seat b{opacity:.75;font-weight:600}
 small.hint{font-size:12px;opacity:.75;text-align:center}
 
-#game{position:fixed;inset:0}
-#topbar{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:8px;right:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;font-weight:700}
-#topbar .pill{background:rgba(0,0,0,.3);border-radius:20px;padding:6px 10px;white-space:nowrap}
-#trumpPill{font-size:15px}
-.plate{position:absolute;background:rgba(0,0,0,.35);border-radius:12px;padding:6px 9px;font-size:13px;text-align:center;min-width:86px;border:2px solid transparent}
-.plate.turn{border-color:#f2c14e;box-shadow:0 0 10px #f2c14e}
-.plate .nm{font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.plate .st{opacity:.9;font-size:12px}
-#p1{right:6px;top:42%}
-#p2{left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 44px)}
-#p3{left:6px;top:42%}
-#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,120px) + 8px)}
-#trick{position:absolute;left:50%;top:46%;width:180px;height:190px;transform:translate(-50%,-50%)}
-#trick .card{position:absolute;left:50%;top:50%}
-#msg{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:7px 14px;border-radius:12px;font-size:14px;font-weight:800;white-space:nowrap;pointer-events:none}
-#hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 8px);height:var(--hh,120px)}
-#hand .card{position:absolute;bottom:0;transition:transform .12s}
-#hand .card.sel{transform:translateY(-22px)}
-#hand .card.no{filter:brightness(.55)}
-.card{width:var(--cw,54px);height:calc(var(--cw,54px)*1.42);border-radius:7px;background:#fdfdfb;color:#151515;box-shadow:0 2px 5px rgba(0,0,0,.45);font-weight:900;overflow:hidden}
-.card.red{color:#d0142c}
-.card .c1{position:absolute;left:4px;top:3px;font-size:calc(var(--cw,54px)*.3);line-height:1;text-align:center}
-.card .c1 i{display:block;font-style:normal;font-size:calc(var(--cw,54px)*.27)}
-.card .c2{position:absolute;right:5px;bottom:2px;font-size:calc(var(--cw,54px)*.55);line-height:1}
+#game{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 42%,#3aa24a 0%,#2a8a3b 45%,#1d6e2d 100%)}
+#handNo{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:10px;font-size:15px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+#sideBtns{position:absolute;right:8px;bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 10px);display:flex;flex-direction:column;gap:8px}
+#sideBtns button{width:38px;height:38px;border-radius:8px;border:2px solid #e9d7b9;background:#5a3418;color:#fff;font-size:18px}
+.plate{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 14px;border-radius:12px;
+  background:linear-gradient(#8a5530,#5c3217);border:2px solid #e6cfa6;box-shadow:0 2px 6px rgba(0,0,0,.45);font-size:15px;font-weight:800;color:#fff;white-space:nowrap;z-index:2}
+.plate .tk{font-size:12px;font-weight:700;color:#ffe9a8}
+.plate.turn{border-color:#ffe066;box-shadow:0 0 12px #ffe066,0 2px 6px rgba(0,0,0,.45)}
+#p2{left:50%;top:calc(env(safe-area-inset-top) + 4px);transform:translateX(-50%)}
+#p1{left:calc(100% - env(safe-area-inset-right) - 28px);top:44%;transform:translate(-50%,-50%) rotate(-90deg)}
+#p3{left:calc(env(safe-area-inset-left) + 28px);top:44%;transform:translate(-50%,-50%) rotate(90deg)}
+#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 6px)}
+#center{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+#trumpBox{display:flex;gap:10px;padding:8px 14px;border:2px solid rgba(0,0,0,.45);border-radius:6px;background:rgba(0,0,0,.18)}
+#trumpBox span{font-size:30px;line-height:1;width:32px;text-align:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+#trumpBox span.off{opacity:.22}
+#trumpBox span.on{transform:scale(1.25)}
+#info{font-size:13px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#trick{position:absolute;left:50%;top:44%;width:0;height:0;z-index:3}
+#trick .card{position:absolute;left:0;top:0}
+#msg{position:absolute;left:50%;top:calc(44% + 100px);transform:translateX(-50%);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:12px;font-size:14px;font-weight:800;white-space:nowrap;pointer-events:none;z-index:4}
+#hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 4px);height:var(--hh,200px)}
+#hand .card{position:absolute;transition:transform .12s}
+#hand .card.sel{transform:translateY(-20px)}
+#hand .card.no{filter:brightness(.6)}
+.card{width:var(--cw,60px);height:calc(var(--cw,60px)*1.4);border-radius:calc(var(--cw,60px)*.09);background:#fff;color:#111;border:1px solid #bbb;box-shadow:0 1px 4px rgba(0,0,0,.4);font-weight:800;overflow:hidden;font-family:Georgia,'Times New Roman',serif}
+.card.red{color:#d40f1f}
+.card .c1{position:absolute;left:calc(var(--cw,60px)*.07);top:calc(var(--cw,60px)*.04);font-size:calc(var(--cw,60px)*.34);line-height:1;text-align:center;letter-spacing:-1px}
+.card .c1 i{display:block;font-style:normal;font-size:calc(var(--cw,60px)*.28);margin-top:1px}
+.card .c2{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);font-size:calc(var(--cw,60px)*.62);line-height:1}
+.card .fc{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);width:calc(var(--cw,60px)*.6);height:calc(var(--cw,60px)*.78);border:2px solid currentColor;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw,60px)*.36);background:rgba(240,200,80,.18)}
 #panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);background:rgba(7,40,24,.95);border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:5}
 #panel h3{text-align:center;font-size:17px}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
@@ -69,7 +76,7 @@ th{font-size:12px}
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 1 · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 2 · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -116,18 +123,15 @@ th{font-size:12px}
 </div>
 
 <div id="game" hidden>
-  <div id="topbar">
-    <span class="pill" id="modePill"></span>
-    <span class="pill" id="trumpPill"></span>
-    <span class="pill" id="handPill"></span>
-    <button class="pill" id="bScore" style="border:0;color:#fff;font-weight:800">Puanlar</button>
-  </div>
-  <div class="plate" id="p2"><div class="nm"></div><div class="st"></div></div>
-  <div class="plate" id="p1"><div class="nm"></div><div class="st"></div></div>
-  <div class="plate" id="p3"><div class="nm"></div><div class="st"></div></div>
-  <div class="plate" id="p0"><div class="nm"></div><div class="st"></div></div>
+  <div id="handNo"></div>
+  <div class="plate" id="p2"><span class="nm"></span><span class="tk"></span></div>
+  <div class="plate" id="p1"><span class="nm"></span><span class="tk"></span></div>
+  <div class="plate" id="p3"><span class="nm"></span><span class="tk"></span></div>
+  <div id="center"><div id="trumpBox"></div><div id="info"></div></div>
   <div id="trick"></div>
   <div id="msg" hidden></div>
+  <div class="plate" id="p0"><span class="nm"></span><span class="tk"></span></div>
+  <div id="sideBtns"><button id="bScore" title="Puanlar">☰</button></div>
   <div id="hand"></div>
   <div id="panel" hidden></div>
   <div id="ovl" hidden><div class="in" id="ovlIn"></div></div>
@@ -493,7 +497,8 @@ function cardEl(c) {
   const d = document.createElement('div');
   const s = suitOf(c);
   d.className = 'card' + (s === 'H' || s === 'D' ? ' red' : '');
-  d.innerHTML = `<div class="c1">${RN(rankOf(c))}<i>${SYM[s]}</i></div><div class="c2">${SYM[s]}</div>`;
+  const r = rankOf(c);
+  d.innerHTML = `<div class="c1">${RN(r)}<i>${SYM[s]}</i></div>` + (r >= 11 && r <= 13 ? `<div class="fc">${SYM[s]}</div>` : `<div class="c2">${SYM[s]}</div>`);
   return d;
 }
 let msgT = null;
@@ -505,47 +510,52 @@ function render() {
   if (!V) return;
   $('lobby').hidden = true; $('game').hidden = false;
   const me = V.you, W = innerWidth;
-  $('modePill').textContent = V.mode === 'koz' ? 'Koz Maça' : (V.highBidder != null && V.phase !== 'bid' ? `İhale: ${esc(V.names[V.highBidder])} ${V.highBid}` : 'İhaleli');
-  $('trumpPill').innerHTML = V.trump ? `Koz <span style="color:${V.trump === 'H' || V.trump === 'D' ? '#ff6b7d' : '#fff'}">${SYM[V.trump]}</span>` : 'Koz ?';
-  $('handPill').textContent = `El ${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
-
+  $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
+  $('trumpBox').innerHTML = SUITS.map(s => `<span class="${V.trump ? (s === V.trump ? 'on' : 'off') : ''}" style="color:${s === 'H' || s === 'D' ? '#e0182b' : '#111'}">${SYM[s]}</span>`).join('');
+  $('info').textContent = V.mode === 'koz' ? 'Koz Maça' : (V.highBidder != null && V.phase !== 'bid' ? `İhale: ${V.names[V.highBidder]} ${V.highBid}` : 'İhaleli');
   for (let s = 0; s < 4; s++) {
     const pl = $('p' + rel(s));
     pl.classList.toggle('turn', V.turn === s);
-    pl.querySelector('.nm').textContent = (s === me ? 'Sen' : V.names[s]) + (s === V.dealer ? ' 🂠' : '');
-    let st = `Aldığı ${V.tricks[s]}`;
+    pl.querySelector('.nm').textContent = (s === me ? 'Siz' : V.names[s]) + '  ' + V.scores[s];
     const b = V.bids[s];
-    if (V.mode === 'koz') st += b != null ? ` / ${b}` : '';
-    else if (b != null) st += ` · ${b === 'Pas' ? 'Pas' : 'ihale ' + b}`;
-    st += ` · Puan ${V.scores[s]}`;
-    pl.querySelector('.st').textContent = st;
+    let tk = `${V.tricks[s]}`;
+    if (V.mode === 'koz') tk += b != null ? ` : ${b}` : '';
+    else if (b === 'Pas') tk += ' · Pas'; else if (b != null) tk += ` · ihale ${b}`;
+    pl.querySelector('.tk').textContent = (s === V.dealer ? '● ' : '') + tk;
   }
 
   // ortadaki el
   const tr = $('trick'); tr.innerHTML = '';
-  const off = [[0, 52], [62, 0], [0, -52], [-62, 0]];
+  const tcw = Math.min(64, W * 0.16);
+  const off = [[0, 0.62], [0.72, 0], [0, -0.62], [-0.72, 0]];
   for (const t of V.trick) {
     const e = cardEl(t.c); const [x, y] = off[rel(t.p)];
-    e.style.setProperty('--cw', '56px');
-    e.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    e.style.setProperty('--cw', tcw + 'px');
+    e.style.transform = `translate(calc(-50% + ${x * tcw * 1.4}px), calc(-50% + ${y * tcw * 1.4}px))`;
     tr.appendChild(e);
   }
 
   // elim
   const hand = V.hand || [];
   const n = hand.length || 1;
-  const cw = Math.max(40, Math.min(64, (W - 16) / (n * 0.56 + 0.44)));
-  const step = Math.min(cw * 0.95, (W - 16 - cw) / Math.max(1, n - 1));
-  const total = cw + step * (n - 1);
-  const hh = cw * 1.42 + 26;
+  const rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
+  const cw = Math.min(W * 0.22, 96, (W - 12) / (perRow * 0.72 + 0.28));
+  const ch = cw * 1.4, step = perRow > 1 ? Math.min(cw * 0.9, (W - 12 - cw) / (perRow - 1)) : 0;
+  const rowGap = ch * 0.5;
+  const hh = ch + (rows - 1) * rowGap + 4;
   document.documentElement.style.setProperty('--hh', hh + 'px');
   const hEl = $('hand'); hEl.innerHTML = '';
   const myTurnPlay = V.phase === 'play' && V.turn === me;
   const legal = myTurnPlay ? legalCards(hand, V.trick, V.trump, V.broken) : [];
   if (selCard && !hand.includes(selCard)) selCard = null;
   hand.forEach((c, i) => {
+    const row = rows === 2 && i >= perRow ? 1 : 0, col = row ? i - perRow : i;
+    const inRow = row ? n - perRow : Math.min(n, perRow);
+    const rowW = cw + step * (inRow - 1);
     const e = cardEl(c); e.style.setProperty('--cw', cw + 'px');
-    e.style.left = ((W - total) / 2 + i * step) + 'px';
+    e.style.left = ((W - rowW) / 2 + col * step) + 'px';
+    e.style.top = (row * rowGap + 4) + 'px';
+    e.style.zIndex = row * 20 + col;
     if (myTurnPlay && !legal.includes(c)) e.classList.add('no');
     if (c === selCard) e.classList.add('sel');
     e.onclick = () => {
