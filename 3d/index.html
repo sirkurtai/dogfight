@@ -20,6 +20,8 @@ input{width:100%;background:#111a30;color:#e6edf7;border:1px solid #2a3a60;borde
 #codeIn{font-size:26px;letter-spacing:6px;text-transform:uppercase;font-family:monospace}
 #roomCode{font-size:44px;font-weight:800;letter-spacing:10px;text-align:center;font-family:monospace}
 a{color:#8fb4ff}
+.opt{background:#24304d;padding:12px 0}
+.opt.sel{background:#2d6cdf;outline:2px solid #fff}
 #game{position:fixed;inset:0}
 #game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:0;right:0;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
@@ -49,7 +51,12 @@ a{color:#8fb4ff}
   <h1>✈ Dogfight 3D</h1>
   <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
-    <p style="text-align:center">Tek başına oyna (bilgisayara karşı):</p>
+    <p style="text-align:center">Kaç düşürmede maç bitsin? <small style="opacity:.7">(oyunu kuran belirler)</small></p>
+    <div style="display:flex;gap:8px" id="goalSel">
+      <button class="btn opt" data-n="3">3</button><button class="btn opt sel" data-n="5">5</button>
+      <button class="btn opt" data-n="10">10</button><button class="btn opt" data-n="20">20</button>
+    </div>
+    <p style="text-align:center;margin-top:10px">Tek başına oyna (bilgisayara karşı):</p>
     <div style="display:flex;gap:8px">
       <button class="btn solo" data-lv="0" style="background:#2f9e6a">Kolay</button>
       <button class="btn solo" data-lv="1" style="background:#c98a1b">Orta</button>
@@ -87,7 +94,7 @@ a{color:#8fb4ff}
     <button class="kb" data-k="T">GAZ</button>
     <button class="kb fire" data-k="F">ATEŞ</button>
   </div>
-  <button class="btn small" id="reset" hidden>Yeni tur</button>
+  <button class="btn small" id="reset" hidden>Rövanş</button>
   <button class="btn small" id="menu" hidden style="top:calc(58% + 60px);position:absolute;left:50%;transform:translateX(-50%);background:#3a4a70">Ana menü</button>
 </div>
 
@@ -99,7 +106,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* ================= Ağ (PeerJS) ================= */
-let peer = null, conn = null, isHost = false, running = false, solo = false, lv = 1;
+let peer = null, conn = null, isHost = false, running = false, solo = false, lv = 1, goal = 5;
 const PREFIX = 'sirkurtai-dogfight3d-';
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function status(t) { $('status').textContent = t; }
@@ -108,7 +115,7 @@ function send(o) { if (conn && conn.open) conn.send(o); }
 function bindConn(c) {
   if (conn && conn.open) { c.close(); return; }
   conn = c;
-  c.on('open', () => { if (running) spawn(); else startGame(); });
+  c.on('open', () => { if (isHost) send({ t: 'cfg', goal }); if (running) newMatch(); else startGame(); });
   c.on('data', recv);
   c.on('close', () => { $('warn').textContent = 'Rakip ayrıldı'; conn = null; });
   c.on('error', () => status('Bağlantı hatası, tekrar dene.'));
@@ -149,6 +156,10 @@ function joinRoom(code) {
   peer.on('error', peerErr);
 }
 $('bHost').onclick = hostRoom;
+document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+  goal = +b.dataset.n;
+  document.querySelectorAll('.opt').forEach(x => x.classList.toggle('sel', x === b));
+});
 document.querySelectorAll('.solo').forEach(b => b.onclick = () => { solo = true; isHost = true; lv = +b.dataset.lv; startGame(); });
 $('bJoin').onclick = () => joinRoom($('codeIn').value);
 $('bCopy').onclick = () => {
@@ -261,7 +272,7 @@ function resize() {
 addEventListener('resize', resize);
 
 /* ================= Oyun durumu ================= */
-let me, op, bullets = [], opBullets = [], fx = [], wins = 0, losses = 0, over = false;
+let me, op, bullets = [], opBullets = [], fx = [], wins = 0, losses = 0, over = false, note = '', noteT = 0;
 let sendT = 0;
 const keys = {}, joy = { x: 0, y: 0, id: null };
 
@@ -271,8 +282,10 @@ function startGame() {
   running = true;
   if (!renderer) initScene();
   resize();
-  spawn();
+  newMatch();
 }
+
+function newMatch() { wins = losses = 0; spawn(); }
 
 function spawn() {
   const z = isHost ? 700 : -700;
@@ -287,6 +300,7 @@ function spawn() {
   $('warn').textContent = '';
   $('reset').hidden = true;
   $('menu').hidden = true;
+  noteT = 0;
 }
 
 function fwdOf(yaw, pitch) {
@@ -316,19 +330,44 @@ function addBullet(list, mat, p, v) {
   list.push({ m, v: new THREE.Vector3(v[0], v[1], v[2]), t: 1.6 });
 }
 
+function showNote(t, sec) { note = t; noteT = sec; }
+function checkMatch() {
+  if (wins >= goal || losses >= goal) {
+    over = true;
+    endRound((wins >= goal ? 'Maçı kazandın! ' : 'Maçı kaybettin ') + wins + '-' + losses);
+    return true;
+  }
+  return false;
+}
 function takeHit() {
-  if (over) return;
+  if (over || me.dead) return;
   me.hp--; flashHit();
   if (me.hp <= 0) {
-    over = true; losses++;
+    me.dead = true; me.rt = 2.5; losses++;
     explode(me.pos); myJet.visible = false;
     send({ t: 'end' });
-    endRound('Vuruldun!');
+    if (!checkMatch()) showNote('Düşürüldün! Yeniden doğuyorsun...', 2.5);
   }
 }
-function winRound() {
-  if (over) return;
-  over = true; wins++; op.hp = 0; explode(op.pos); opJet.visible = false; endRound('Kazandın!');
+function winKill() {
+  if (over || op.dead) return;
+  op.dead = true; op.hp = 0; op.rt = 2.5; wins++;
+  explode(op.pos); opJet.visible = false;
+  if (!checkMatch()) showNote('Düşürdün! +1', 2);
+}
+function respawnMe() {
+  const a = Math.random() * Math.PI * 2;
+  me.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
+  me.yaw = a; me.pitch = 0; me.roll = 0; me.hp = 3; me.dead = false; me.speed = 130;
+  myJet.visible = true;
+  camera.position.copy(me.pos).add(new THREE.Vector3(Math.sin(a) * 45, 10, Math.cos(a) * 45));
+  send({ t: 're', p: [me.pos.x, me.pos.y, me.pos.z], r: [me.yaw, 0, 0] });
+}
+function respawnBot() {
+  const a = Math.atan2(me.pos.x, me.pos.z) + Math.PI + (Math.random() - 0.5);
+  op.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
+  op.yaw = a; op.pitch = 0; op.roll = 0; op.hp = 3; op.dead = false;
+  opJet.visible = true;
 }
 
 /* ================= Bilgisayar rakip (solo) ================= */
@@ -341,7 +380,7 @@ function botUpdate(dt) {
   const B = BOT[lv];
   op.cd = (op.cd || 0) - dt;
   op.jt = (op.jt || 0) + dt;
-  if (over && op.hp <= 0) return;
+  if (op.dead) return;
   // hedef: oyuncunun biraz önü (öncül nişan)
   const myVel = fwdOf(me.yaw, me.pitch).multiplyScalar(me.speed);
   const d0 = me.pos.distanceTo(op.pos);
@@ -368,7 +407,7 @@ function botUpdate(dt) {
   op.pos.y = Math.max(op.pos.y, 8);
   // ateş
   const f = fwdOf(op.yaw, op.pitch);
-  if (!over && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
+  if (!over && !me.dead && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
     op.cd = B.cd * (0.8 + Math.random() * 0.5);
     const dir = f.clone().add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5), (Math.random() - .5)).multiplyScalar(B.spread * 2)).normalize();
     const p = op.pos.clone().addScaledVector(dir, 13), v = dir.multiplyScalar(op.speed + 750);
@@ -377,6 +416,7 @@ function botUpdate(dt) {
 }
 
 function recv(m) {
+  if (m.t === 'cfg') { goal = m.goal; return; }
   if (!me) return;
   if (m.t === 's') {
     op.tp.set(m.p[0], m.p[1], m.p[2]);
@@ -386,9 +426,13 @@ function recv(m) {
   } else if (m.t === 'hit') {
     takeHit();
   } else if (m.t === 'end') {
-    winRound();
-  } else if (m.t === 'reset') {
-    spawn();
+    winKill();
+  } else if (m.t === 're') {
+    op.tp.set(m.p[0], m.p[1], m.p[2]); op.pos.copy(op.tp);
+    op.yaw = op.ty = m.r[0]; op.pitch = op.tpi = 0; op.roll = op.tr = 0;
+    op.hp = 3; op.dead = false; opJet.visible = true;
+  } else if (m.t === 'rematch') {
+    newMatch();
   }
 }
 
@@ -400,7 +444,9 @@ function segDist(a, b, p) { // a-b doğru parçasının p noktasına en yakın m
 function update(dt) {
   if (!me) return;
   let warn = '';
-  if (!over) {
+  if (!over && me.dead) { me.rt -= dt; if (me.rt <= 0) respawnMe(); }
+  if (!over && solo && op.dead) { op.rt -= dt; if (op.rt <= 0) respawnBot(); }
+  if (!over && !me.dead) {
     const jx = clamp(joy.x + (keys.R ? 1 : 0) - (keys.L ? 1 : 0), -1, 1);
     const jy = clamp(joy.y + (keys.D ? 1 : 0) - (keys.U ? 1 : 0), -1, 1);
     me.yaw -= jx * 1.35 * dt;
@@ -448,7 +494,7 @@ function update(dt) {
     if (!over && op.hp > 0 && opJet.visible && segDist(prev, b.m.position, op.pos) < HIT_R) {
       b.t = 0; op.hp--;
       explode(b.m.position.clone()); fx[fx.length - 1].small = true;
-      if (solo) { if (op.hp <= 0) winRound(); } else send({ t: 'hit' });
+      if (solo) { if (op.hp <= 0) winKill(); } else send({ t: 'hit' });
     }
   }
   for (const b of opBullets) {
@@ -473,7 +519,8 @@ function update(dt) {
     sendT = 0;
     send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: [me.yaw, me.pitch, me.roll], b: me.boost });
   }
-  $('warn').textContent = over ? $('warn').textContent : warn;
+  noteT -= dt;
+  if (!over) $('warn').textContent = noteT > 0 ? note : warn;
 }
 
 function render() {
@@ -492,7 +539,7 @@ function render() {
   const aim = me.pos.clone().addScaledVector(f, 400).project(camera);
   const cx = (aim.x + 1) / 2 * innerWidth, cy = (1 - aim.y) / 2 * innerHeight;
   $('cross').style.left = cx + 'px'; $('cross').style.top = cy + 'px';
-  $('cross').hidden = over;
+  $('cross').hidden = over || me.dead;
 
   // rakip göstergesi
   const dist = Math.round(me.pos.distanceTo(op.pos));
@@ -515,7 +562,7 @@ function render() {
     arr.style.transform = 'rotate(' + (Math.PI / 2 - ang) + 'rad)';
   }
 
-  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   ${solo ? ['Kolay', 'Orta', 'Zor'][lv] + ' bot' : 'Rakip'} ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses}`;
+  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   ${solo ? ['Kolay', 'Orta', 'Zor'][lv] + ' bot' : 'Rakip'} ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses} / ${goal}`;
   $('info').textContent = `İrtifa ${Math.round(me.pos.y)}  ·  Hız ${Math.round(me.speed)}  ·  Rakip ${dist} m`;
   renderer.render(scene, camera);
 }
@@ -555,7 +602,7 @@ const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'U', 
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 
-$('reset').onclick = () => { send({ t: 'reset' }); spawn(); };
+$('reset').onclick = () => { send({ t: 'rematch' }); newMatch(); };
 $('menu').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
 
 /* ================= Döngü ================= */
