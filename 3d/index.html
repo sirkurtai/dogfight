@@ -45,13 +45,26 @@ a{color:#8fb4ff}
 .kb.on{background:rgba(120,170,255,.75)}
 .kb.fire.on{background:rgba(255,110,110,.8)}
 #reset{position:absolute;top:58%;left:50%;transform:translateX(-50%)}
+#gimbal{position:absolute;width:90px;height:90px;margin:-45px 0 0 -45px;border:2px solid #2ee66b;border-radius:50%;pointer-events:none;box-shadow:0 0 3px rgba(0,0,0,.6)}
+#gimbal.lock{border-width:3px;background:rgba(46,230,107,.14)}
+#gimbal.mlock{border-color:#ffd23f;background:rgba(255,210,63,.18)}
+#lockTxt{position:absolute;top:94px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;color:#2ee66b;white-space:nowrap;text-shadow:0 1px 2px #000}
+#gimbal.mlock #lockTxt{color:#ffd23f}
+#mwarn{position:absolute;top:calc(env(safe-area-inset-top) + 56px);left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:rgba(200,0,30,.8);color:#fff;font-size:17px;font-weight:900;white-space:nowrap;pointer-events:none;animation:blink .35s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+#pad3{position:absolute;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 132px);display:flex;gap:10px}
+.kb.sm{width:66px;height:66px;font-size:12px;line-height:1.15}
+.kb.mis{background:rgba(230,170,30,.5);border-color:#a8781a}
+.kb.fl{background:rgba(255,120,40,.45);border-color:#b0581c}
+.kb.ch{background:rgba(160,170,190,.45);border-color:#6d7891}
+.kb small{display:block;font-size:11px;font-weight:700;opacity:.95}
 </style>
 </head>
 <body>
 
 <div id="lobby">
   <h1>✈ Dogfight 3D</h1>
-  <p style="font-size:12px;opacity:.6;margin-top:-8px">Sürüm 7 · takla &amp; tono</p>
+  <p style="font-size:12px;opacity:.6;margin-top:-8px">Sürüm 8 · füze, flare/chaff, hareketli makineli</p>
   <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
     <p style="text-align:center">Kaç düşürmede maç bitsin? <small style="opacity:.7">(oyunu kuran belirler)</small></p>
@@ -70,7 +83,7 @@ a{color:#8fb4ff}
     <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
     <button class="btn" id="bJoin">Katıl</button>
-    <p style="text-align:center;margin-top:14px;font-size:13px;opacity:.8">Kontroller: joystick sağ-sol = yatış (360°, tono atılabilir), yukarı-aşağı = burun. Dönmek için yatır ve çek. Sağda GAZ ve ATEŞ, ortadaki + nişangâh.</p>
+    <p style="text-align:center;margin-top:14px;font-size:13px;opacity:.8">Kontroller: joystick sağ-sol = yatış (360°, tono atılabilir), yukarı-aşağı = burun. Dönmek için yatır ve çek. Sağda GAZ ve ATEŞ. Rakip yeşil halkanın içindeyken makineli onu kendisi takip eder. Rakibi halkada ~1 sn tutunca füze kilitlenir (sarı). Füze ikazı gelince: IR → FLARE, RADAR → CHAFF.</p>
     <label style="display:flex;gap:10px;align-items:center;justify-content:center;font-size:14px"><input type="checkbox" id="inv" style="width:22px;height:22px"> Gerçek pilot kontrolü (aşağı çek = burun yukarı)</label>
     <p style="text-align:center"><a href="../">2D versiyona geç</a></p>
   </div>
@@ -86,7 +99,9 @@ a{color:#8fb4ff}
 </div>
 
 <div id="game" hidden>
+  <div id="gimbal"><span id="lockTxt"></span></div>
   <div id="cross"></div>
+  <div id="mwarn" hidden></div>
   <div id="tgt" hidden><span></span></div>
   <div id="arrow" hidden></div>
   <div id="flash"></div>
@@ -95,6 +110,11 @@ a{color:#8fb4ff}
   <div id="info"></div>
   <div id="warn"></div>
   <div id="joy"><div id="knob"></div></div>
+  <div id="pad3">
+    <button class="kb sm mis" data-k="M">FÜZE<small id="nM">2</small></button>
+    <button class="kb sm fl" data-k="FL">FLARE<small id="nFL">4</small></button>
+    <button class="kb sm ch" data-k="CH">CHAFF<small id="nCH">4</small></button>
+  </div>
   <div id="pad2">
     <button class="kb" data-k="T">GAZ</button>
     <button class="kb fire" data-k="F">ATEŞ</button>
@@ -281,6 +301,7 @@ function resize() {
 addEventListener('resize', resize);
 
 /* ================= Oyun durumu ================= */
+let missiles = [], remoteMis = new Map(), decoys = [], trails = [], gunLock = false, inLockZone = false, misLockT = 0, misLock = false, beepT = 0;
 let me, op, bullets = [], opBullets = [], fx = [], wins = 0, losses = 0, over = false, note = '', noteT = 0;
 let sendT = 0;
 const keys = {}, joy = { x: 0, y: 0, id: null };
@@ -295,6 +316,7 @@ function startGame() {
   newMatch();
 }
 
+function arm(p) { p.ms = ['IR', 'RDR']; p.fl = 4; p.ch = 4; p.lockT = 0; p.mcd = 3; }
 function newMatch() { wins = losses = 0; spawn(); }
 
 function spawn() {
@@ -305,6 +327,12 @@ function spawn() {
   me.q = eulerQ(me.yaw, 0, 0); op.q = eulerQ(op.yaw, 0, 0); op.tq = op.q.clone();
   for (const b of bullets.concat(opBullets)) scene.remove(b.m);
   bullets = []; opBullets = [];
+  for (const m of missiles) scene.remove(m.mesh);
+  for (const m of remoteMis.values()) scene.remove(m.mesh);
+  for (const d of decoys) d.meshes.forEach(x => scene.remove(x));
+  for (const t of trails) scene.remove(t.m);
+  missiles = []; remoteMis.clear(); decoys = []; trails = [];
+  arm(me); arm(op); me.rr = me.pr = 0; op.vel = V3(0, 0, 0); misLockT = 0; misLock = false;
   over = false;
   myJet.visible = opJet.visible = true;
   camera.position.copy(me.pos).add(new THREE.Vector3(0, 10, isHost ? 45 : -45)); camera.up.set(0, 1, 0);
@@ -363,9 +391,9 @@ function checkMatch() {
   }
   return false;
 }
-function takeHit() {
+function takeHit(d = 1) {
   if (over || me.dead) return;
-  me.hp--; flashHit();
+  me.hp -= d; flashHit();
   if (me.hp <= 0) {
     me.dead = true; me.rt = 2.5; losses++;
     explode(me.pos); myJet.visible = false;
@@ -382,7 +410,7 @@ function winKill() {
 function respawnMe() {
   const a = Math.random() * Math.PI * 2;
   me.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
-  me.yaw = a; me.pitch = 0; me.roll = 0; me.hp = 3; me.dead = false; me.speed = 140; me.q = eulerQ(a, 0, 0);
+  me.yaw = a; me.pitch = 0; me.roll = 0; me.hp = 3; me.dead = false; me.speed = 140; me.q = eulerQ(a, 0, 0); arm(me); me.rr = me.pr = 0;
   myJet.visible = true;
   camera.position.copy(me.pos).add(new THREE.Vector3(Math.sin(a) * 45, 10, Math.cos(a) * 45)); camera.up.set(0, 1, 0);
   send({ t: 're', p: [me.pos.x, me.pos.y, me.pos.z], r: me.q.toArray() });
@@ -390,15 +418,180 @@ function respawnMe() {
 function respawnBot() {
   const a = Math.atan2(me.pos.x, me.pos.z) + Math.PI + (Math.random() - 0.5);
   op.pos.set(Math.sin(a) * 1000, 250, Math.cos(a) * 1000);
-  op.yaw = a; op.pitch = 0; op.roll = 0; op.hp = 3; op.dead = false; op.q = eulerQ(a, 0, 0);
+  op.yaw = a; op.pitch = 0; op.roll = 0; op.hp = 3; op.dead = false; op.q = eulerQ(a, 0, 0); arm(op);
   opJet.visible = true;
+}
+
+/* ================= Füze, flare, chaff ================= */
+const misBody = new THREE.MeshLambertMaterial({ color: 0xf1f3f5 });
+const misFlame = new THREE.MeshBasicMaterial({ color: 0xffb347 });
+const flareMat = new THREE.MeshBasicMaterial({ color: 0xfff1b0 });
+const chaffMat = new THREE.MeshBasicMaterial({ color: 0xc9d2e3 });
+const puffGeo = new THREE.SphereGeometry(1.6, 6, 4);
+function makeMissileMesh() {
+  const g = new THREE.Group();
+  const body = new THREE.CylinderGeometry(0.45, 0.45, 5, 8); body.rotateX(Math.PI / 2);
+  g.add(new THREE.Mesh(body, misBody));
+  const nose = new THREE.ConeGeometry(0.45, 1.4, 8); nose.rotateX(-Math.PI / 2);
+  const n = new THREE.Mesh(nose, misBody); n.position.z = -3.2; g.add(n);
+  const fl = new THREE.ConeGeometry(0.5, 2.5, 6); fl.rotateX(Math.PI / 2);
+  const f = new THREE.Mesh(fl, misFlame); f.position.z = 3.6; g.add(f);
+  scene.add(g);
+  return g;
+}
+const misIdBase = Math.floor(Math.random() * 1e6);
+let misSeq = 0;
+function launchMissile(owner) {
+  const src = owner === 'me' ? me : op;
+  if (!src.ms.length) return;
+  const type = src.ms.shift();
+  const dir = owner === 'me' ? fwdQ(me.q) : fwdOf(op.yaw, op.pitch);
+  const pos = src.pos.clone().addScaledVector(dir, 14).add(V3(0, -2, 0));
+  missiles.push({ id: misIdBase + (misSeq++), owner, type, pos, dir: dir.clone(), spd: (src.speed || 140) + 60,
+    tgt: owner === 'me' ? 'op' : 'me', t: 0, trailT: 0, mesh: makeMissileMesh() });
+  if (owner === 'me') showNote(type === 'IR' ? 'IR füze atıldı (ısı güdümlü)' : 'Radar füze atıldı', 1.5);
+}
+function tgtPos(m) {
+  if (m.tgt === 'op') return (op.dead || !opJet.visible) ? null : op.pos;
+  if (m.tgt === 'me') return (me.dead || !myJet.visible) ? null : me.pos;
+  if (m.tgt && m.tgt.pos) return m.tgt.t > 0 ? m.tgt.pos : null;
+  return null;
+}
+function puff(pos) {
+  const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.55 }));
+  m.position.copy(pos); scene.add(m); trails.push({ m, t: 0 });
+  if (trails.length > 260) scene.remove(trails.shift().m);
+}
+function missileHit(m, tp) {
+  explode(m.pos.clone()); if (!(m.tgt === 'op' || m.tgt === 'me')) fx[fx.length - 1].small = true;
+  if (m.tgt === 'op') {
+    op.hp -= 2;
+    if (solo) { if (op.hp <= 0) winKill(); } else send({ t: 'hit', d: 2 });
+  } else if (m.tgt === 'me') takeHit(2);
+}
+function updateMissiles(dt) {
+  for (const m of missiles) {
+    m.t += dt;
+    const tp = tgtPos(m);
+    if (!tp && (m.tgt === 'op' || m.tgt === 'me' || (m.tgt && m.tgt.pos))) m.tgt = null;
+    if (tp && m.t > 0.35) {
+      const want = tp.clone().sub(m.pos).normalize();
+      const ang = m.dir.angleTo(want), mx = 2.0 * dt;
+      if (ang > 1e-4) { const ax = m.dir.clone().cross(want).normalize(); m.dir.applyAxisAngle(ax, Math.min(ang, mx)).normalize(); }
+      // hedefi geçtiyse kilidi kaybeder (kaçış mümkün)
+      if (m.t > 1 && m.dir.dot(tp.clone().sub(m.pos)) < 0 && m.pos.distanceTo(tp) > 25) m.tgt = null;
+    }
+    m.spd += (440 - m.spd) * Math.min(1, dt * 1.2);
+    const prev = m.pos.clone();
+    m.pos.addScaledVector(m.dir, m.spd * dt);
+    m.mesh.position.copy(m.pos); m.mesh.quaternion.setFromUnitVectors(V3(0, 0, -1), m.dir);
+    m.trailT -= dt; if (m.trailT <= 0) { m.trailT = 0.05; puff(prev); }
+    if (tp && segDist(prev, m.pos, tp) < 14) { missileHit(m, tp); m.done = true; }
+    else if (m.t > 10 || m.pos.y < 2) { explode(m.pos.clone()); fx[fx.length - 1].small = true; m.done = true; }
+    // bot karşı tedbir
+    if (solo && m.tgt === 'op' && !m.botSeen && tp && m.pos.distanceTo(tp) < 700) {
+      m.botSeen = true;
+      if (Math.random() < BOT[lv].cm) {
+        const k = m.type === 'IR' ? 'FL' : 'CH';
+        if ((k === 'FL' ? op.fl : op.ch) > 0) { if (k === 'FL') op.fl--; else op.ch--; deployAt('op', k, op.pos.clone(), op.vel.clone()); }
+      }
+      op.evT = 2.2;
+    }
+  }
+  for (const m of missiles) if (m.done) scene.remove(m.mesh);
+  missiles = missiles.filter(m => !m.done);
+  for (const t of trails) { t.t += dt; t.m.material.opacity = Math.max(0, 0.55 - t.t * 0.35); t.m.scale.setScalar(1 + t.t * 1.5); }
+  while (trails.length && trails[0].t > 1.6) scene.remove(trails.shift().m);
+  for (const d of decoys) {
+    d.t -= dt; d.vel.y -= 25 * dt; d.vel.multiplyScalar(1 - dt * 0.9); d.pos.addScaledVector(d.vel, dt);
+    d.meshes.forEach((x, i) => { x.position.copy(d.pos).add(d.off[i].clone().multiplyScalar(1 + (3 - d.t) * 2)); x.visible = d.type === 'CH' || Math.random() > 0.15; });
+  }
+  for (const d of decoys) if (d.t <= 0) d.meshes.forEach(x => scene.remove(x));
+  decoys = decoys.filter(d => d.t > 0);
+}
+function deployAt(ownerKey, k, pos, vel) {
+  const meshes = [], off = [];
+  const n = k === 'FL' ? 4 : 10;
+  for (let i = 0; i < n; i++) {
+    const g = k === 'FL' ? new THREE.SphereGeometry(1.4, 6, 4) : new THREE.BoxGeometry(0.9, 0.9, 0.9);
+    const x = new THREE.Mesh(g, k === 'FL' ? flareMat : chaffMat);
+    scene.add(x); meshes.push(x);
+    off.push(V3((Math.random() - .5) * 6, (Math.random() - .5) * 4, (Math.random() - .5) * 6));
+  }
+  const d = { type: k, pos: pos.clone(), vel: vel.clone().multiplyScalar(0.3).add(V3(0, -8, 0)), t: 3, meshes, off };
+  decoys.push(d);
+  // bu uçağı takip eden füzeler aldanabilir: IR ↔ FLARE, RADAR ↔ CHAFF
+  const victim = ownerKey === 'me' ? 'me' : 'op';
+  for (const m of missiles) {
+    if (m.tgt !== victim || m.pos.distanceTo(pos) > 1600) continue;
+    const right = (m.type === 'IR' && k === 'FL') || (m.type === 'RDR' && k === 'CH');
+    if (Math.random() < (right ? 0.8 : 0.08)) m.tgt = d;
+  }
+}
+function useCM(k) {
+  if (over || me.dead) return;
+  const left = k === 'FL' ? me.fl : me.ch;
+  if (left <= 0) { showNote(k === 'FL' ? 'Flare kalmadı' : 'Chaff kalmadı', 1.2); return; }
+  if (k === 'FL') me.fl--; else me.ch--;
+  const v = fwdQ(me.q).multiplyScalar(me.speed);
+  deployAt('me', k, me.pos.clone(), v);
+  send({ t: 'cm', k, p: [me.pos.x, me.pos.y, me.pos.z], v: [v.x, v.y, v.z] });
+  beep(k === 'FL' ? 520 : 380, 0.06);
+}
+function fireMissileBtn() {
+  if (over || me.dead) return;
+  if (!me.ms.length) { showNote('Füze kalmadı', 1.2); return; }
+  if (!misLock) { showNote('Kilit yok: rakibi yeşil halkada tut', 1.4); return; }
+  launchMissile('me'); misLockT = 0; misLock = false;
+}
+function syncRemoteMissiles(list) {
+  const seen = new Set();
+  for (const a of list) {
+    seen.add(a[0]);
+    let r = remoteMis.get(a[0]);
+    if (!r) { r = { mesh: makeMissileMesh(), pos: V3(a[1], a[2], a[3]), tp: V3(), dir: V3(), trailT: 0 }; remoteMis.set(a[0], r); }
+    r.tp.set(a[1], a[2], a[3]); r.dir.set(a[4], a[5], a[6]).normalize(); r.atMe = a[7] === 1; r.type = a[8];
+  }
+  for (const [id, r] of remoteMis) if (!seen.has(id)) {
+    explode(r.pos.clone()); fx[fx.length - 1].small = true; scene.remove(r.mesh); remoteMis.delete(id);
+  }
+}
+function updateRemoteMissiles(dt) {
+  for (const r of remoteMis.values()) {
+    const prev = r.pos.clone();
+    r.pos.addScaledVector(r.dir, 440 * dt).lerp(r.tp, Math.min(1, dt * 8));
+    r.mesh.position.copy(r.pos); if (r.dir.lengthSq() > 0.5) r.mesh.quaternion.setFromUnitVectors(V3(0, 0, -1), r.dir);
+    r.trailT -= dt; if (r.trailT <= 0) { r.trailT = 0.05; puff(prev); }
+  }
+}
+// gelen füze ikazı
+let actx = null;
+function beep(freq, dur) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'square'; o.frequency.value = freq; g.gain.value = 0.06;
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+  } catch (e) {}
+}
+function missileWarning(dt) {
+  let best = null, bd = 1e9;
+  for (const m of missiles) if (m.tgt === 'me') { const d = m.pos.distanceTo(me.pos); if (d < bd) { bd = d; best = m.type; } }
+  for (const r of remoteMis.values()) if (r.atMe) { const d = r.pos.distanceTo(me.pos); if (d < bd) { bd = d; best = r.type; } }
+  const w = $('mwarn');
+  if (!best || me.dead) { w.hidden = true; return; }
+  w.hidden = false;
+  w.textContent = `⚠ FÜZE ${Math.round(bd)} m · ${best === 'IR' ? 'IR → FLARE AT' : 'RADAR → CHAFF AT'}`;
+  beepT -= dt;
+  if (beepT <= 0) { beepT = clamp(bd / 1500, 0.09, 0.6); beep(best === 'IR' ? 1250 : 900, 0.07); }
 }
 
 /* ================= Bilgisayar rakip (solo) ================= */
 const BOT = [ // kolay, orta, zor
-  { turn: 0.45, pitch: 0.35, cone: 0.035, cd: 0.9, range: 380, speed: 105, spread: 0.07, lead: 0, wander: 0.5 },
-  { turn: 0.9, pitch: 0.7, cone: 0.07, cd: 0.35, range: 600, speed: 130, spread: 0.025, lead: 0.6, wander: 0.2 },
-  { turn: 1.35, pitch: 1.1, cone: 0.13, cd: 0.17, range: 850, speed: 150, spread: 0.008, lead: 1, wander: 0 },
+  { turn: 0.45, pitch: 0.35, cone: 0.035, cd: 0.9, range: 380, speed: 105, spread: 0.07, lead: 0, wander: 0.5, lockT: 5, mcd: 30, cm: 0.25 },
+  { turn: 0.9, pitch: 0.7, cone: 0.07, cd: 0.35, range: 600, speed: 130, spread: 0.025, lead: 0.6, wander: 0.2, lockT: 3, mcd: 15, cm: 0.55 },
+  { turn: 1.35, pitch: 1.1, cone: 0.13, cd: 0.17, range: 850, speed: 150, spread: 0.008, lead: 1, wander: 0, lockT: 1.8, mcd: 8, cm: 0.85 },
 ];
 function botUpdate(dt) {
   const B = BOT[lv];
@@ -418,7 +611,9 @@ function botUpdate(dt) {
   // kolay/orta bot zaman zaman dikkatini kaybedip başıboş uçar
   const wandering = (op.jt % 10) / 10 < B.wander;
   if (wandering) { wantYaw = op.yaw + 0.35; wantPitch = 0.05; }
-  if (!wandering && opF.dot(toMe) < -0.5 && d0 < 500) { wantYaw = op.yaw + Math.sin(op.jt * 1.7) * 1.2; wantPitch = Math.sin(op.jt * 1.1) * 0.5; }
+  op.evT = (op.evT || 0) - dt;
+  if (op.evT > 0) { wantYaw = op.yaw + 1.6; wantPitch = -0.25; }
+  else if (!wandering && opF.dot(toMe) < -0.5 && d0 < 500) { wantYaw = op.yaw + Math.sin(op.jt * 1.7) * 1.2; wantPitch = Math.sin(op.jt * 1.1) * 0.5; }
   // sınırlar
   if (Math.hypot(op.pos.x, op.pos.z) > ARENA) wantYaw = Math.atan2(op.pos.x, op.pos.z);
   if (op.pos.y < MIN_ALT + 30) wantPitch = Math.max(wantPitch, 0.4);
@@ -433,6 +628,12 @@ function botUpdate(dt) {
   op.pos.addScaledVector(fwdOf(op.yaw, op.pitch), op.speed * dt);
   op.q = eulerQ(op.yaw, op.pitch, op.roll);
   op.pos.y = Math.max(op.pos.y, 8);
+  op.vel = fwdOf(op.yaw, op.pitch).multiplyScalar(op.speed);
+  // bot füze
+  op.mcd -= dt;
+  const inCone = fwdOf(op.yaw, op.pitch).angleTo(me.pos.clone().sub(op.pos)) < 0.2 && d0 < 1300;
+  op.lockT = (!wandering && inCone && !me.dead) ? op.lockT + dt : 0;
+  if (op.lockT > B.lockT && op.ms.length && op.mcd <= 0 && !over) { launchMissile('op'); op.mcd = B.mcd; op.lockT = 0; }
   // ateş
   const f = fwdOf(op.yaw, op.pitch);
   if (!wandering && !over && !me.dead && op.cd <= 0 && d0 < B.range && f.angleTo(me.pos.clone().sub(op.pos)) < B.cone) {
@@ -449,16 +650,20 @@ function recv(m) {
   if (m.t === 's') {
     op.tp.set(m.p[0], m.p[1], m.p[2]);
     op.tq.fromArray(m.r); op.boost = m.b;
+    if (m.v) op.vel.set(m.v[0], m.v[1], m.v[2]);
+    syncRemoteMissiles(m.ms || []);
   } else if (m.t === 'b') {
     addBullet(opBullets, opBulletMat, m.p, m.v);
   } else if (m.t === 'hit') {
-    takeHit();
+    takeHit(m.d || 1);
   } else if (m.t === 'end') {
     winKill();
   } else if (m.t === 're') {
     op.tp.set(m.p[0], m.p[1], m.p[2]); op.pos.copy(op.tp);
     op.q.fromArray(m.r); op.tq.copy(op.q);
-    op.hp = 3; op.dead = false; opJet.visible = true;
+    op.hp = 3; op.dead = false; opJet.visible = true; arm(op);
+  } else if (m.t === 'cm') {
+    deployAt('op', m.k, V3(m.p[0], m.p[1], m.p[2]), V3(m.v[0], m.v[1], m.v[2]));
   } else if (m.t === 'rematch') {
     newMatch();
   }
@@ -479,10 +684,15 @@ function update(dt) {
     const jy = clamp(joy.y + (keys.D ? 1 : 0) - (keys.U ? 1 : 0), -1, 1);
     // 6 eksenli uçuş: sağ-sol = yatış (roll, sınırsız), yukarı-aşağı = yunuslama (pitch, sınırsız → takla)
     const py = invert ? jy : -jy;
-    rotLocal(me.q, AZ, -jx * 3.3 * dt);
-    rotLocal(me.q, AX, py * 1.75 * dt);
+    // yumuşak tepki: merkezde hassas (expo), komut hızına yavaşça ulaşır (atalet)
+    const expo = v => v * (0.25 + 0.75 * Math.abs(v));
+    const ease = Math.min(1, dt * 4);
+    me.rr += (-expo(jx) * 2.1 - me.rr) * ease;
+    me.pr += (expo(py) * 1.05 - me.pr) * ease;
+    rotLocal(me.q, AZ, me.rr * dt);
+    rotLocal(me.q, AX, me.pr * dt);
     // koordineli dönüş: uçak yatıkken burun yavaşça yatış yönüne döner
-    rotWorld(me.q, AY, rightQ(me.q).y * 0.55 * dt);
+    rotWorld(me.q, AY, rightQ(me.q).y * 0.4 * dt);
 
     let f = fwdQ(me.q);
     const flat = V3(f.x, 0, f.z); if (flat.lengthSq() < 1e-4) flat.copy(upQ(me.q).setY(0)); flat.normalize();
@@ -503,11 +713,18 @@ function update(dt) {
     me.pos.y = Math.max(me.pos.y, 8);
     me.yaw = Math.atan2(-f.x, -f.z);
 
+    if (inLockZone) misLockT += dt; else misLockT = Math.max(0, misLockT - dt * 3);
+    misLock = misLockT >= 1.1;
     me.cd -= dt;
     if ((keys.F || tk.F) && me.cd <= 0) {
       me.cd = 0.14;
-      const p = me.pos.clone().addScaledVector(f, 13);
-      const v = f.clone().multiplyScalar(me.speed + 750);
+      const p = me.pos.clone().addScaledVector(f, 13), bs = me.speed + 750;
+      let dir = f.clone();
+      if (gunLock) {   // hareketli makineli: rakibin gideceği noktaya nişan al
+        const tt = op.pos.distanceTo(p) / bs;
+        dir = op.pos.clone().addScaledVector(op.vel, tt).sub(p).normalize();
+      }
+      const v = dir.multiplyScalar(bs);
       addBullet(bullets, myBulletMat, [p.x, p.y, p.z], [v.x, v.y, v.z]);
       send({ t: 'b', p: [p.x, p.y, p.z], v: [v.x, v.y, v.z] });
     }
@@ -519,6 +736,10 @@ function update(dt) {
     op.pos.lerp(op.tp, k);
     op.q.slerp(op.tq, k);
   }
+
+  updateMissiles(dt);
+  if (!solo) updateRemoteMissiles(dt);
+  missileWarning(dt);
 
   // mermiler
   for (const b of bullets) {
@@ -550,7 +771,10 @@ function update(dt) {
   sendT += dt;
   if (sendT > 0.05) {
     sendT = 0;
-    send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: me.q.toArray(), b: me.boost });
+    const mv = fwdQ(me.q).multiplyScalar(me.speed);
+    const r1 = x => Math.round(x * 10) / 10;
+    send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: me.q.toArray(), b: me.boost, v: [mv.x, mv.y, mv.z],
+      ms: missiles.filter(x => x.owner === 'me').map(x => [x.id, r1(x.pos.x), r1(x.pos.y), r1(x.pos.z), r1(x.dir.x), r1(x.dir.y), r1(x.dir.z), x.tgt === 'op' ? 1 : 0, x.type]) });
   }
   noteT -= dt;
   if (!over) $('warn').textContent = noteT > 0 ? note : warn;
@@ -574,6 +798,21 @@ function render() {
   const cx = (aim.x + 1) / 2 * innerWidth, cy = (1 - aim.y) / 2 * innerHeight;
   $('cross').style.left = cx + 'px'; $('cross').style.top = cy + 'px';
   $('cross').hidden = over || me.dead;
+  const gm = $('gimbal');
+  gm.style.left = cx + 'px'; gm.style.top = cy + 'px'; gm.hidden = over || me.dead;
+  {
+    const sp2 = op.pos.clone().project(camera);
+    const px = (sp2.x + 1) / 2 * innerWidth, py2 = (1 - sp2.y) / 2 * innerHeight;
+    const inside = opJet.visible && !op.dead && sp2.z < 1 && Math.hypot(px - cx, py2 - cy) < 45 && fwdQ(me.q).dot(op.pos.clone().sub(me.pos)) > 0;
+    const d = me.pos.distanceTo(op.pos);
+    gunLock = inside && d < 900;
+    inLockZone = inside && d < 1800 && me.ms.length > 0;
+    gm.classList.toggle('lock', gunLock);
+    gm.classList.toggle('mlock', misLock && inLockZone);
+    $('lockTxt').textContent = misLock && inLockZone ? `FÜZE KİLİT ✓ (${me.ms[0] === 'IR' ? 'IR' : 'RADAR'})` : inLockZone && misLockT > 0.1 ? 'KİLİTLENİYOR...' : gunLock ? 'MAKİNELİ TAKİPTE' : '';
+  }
+  $('nM').textContent = me.ms.length ? `${me.ms.length} · ${me.ms[0] === 'IR' ? 'IR' : 'RDR'}` : '0';
+  $('nFL').textContent = me.fl; $('nCH').textContent = me.ch;
 
   // rakip göstergesi
   const dist = Math.round(me.pos.distanceTo(op.pos));
@@ -624,6 +863,9 @@ function drawRadar() {
     const [ox, oy] = pt(op.pos);
     rc.fillStyle = '#ff4d6d'; rc.beginPath(); rc.arc(ox, oy, 8, 0, Math.PI * 2); rc.fill();
   }
+  rc.fillStyle = '#ffd23f';
+  for (const m of missiles) { const [x, y] = pt(m.pos); rc.fillRect(x - 4, y - 4, 8, 8); }
+  for (const m of remoteMis.values()) { const [x, y] = pt(m.pos); rc.fillRect(x - 4, y - 4, 8, 8); }
   if (myJet.visible) {
     const [mx, my] = pt(me.pos);
     rc.save(); rc.translate(mx, my); rc.rotate(-me.yaw);
@@ -644,10 +886,13 @@ function btnAt(x, y) {
   }
   return null;
 }
+const ACT = { M: fireMissileBtn, FL: () => useCM('FL'), CH: () => useCM('CH') };
 function syncBtns() {
-  tk.T = tk.F = false;
+  const prev = { ...tk };
+  for (const k of ['T', 'F', 'M', 'FL', 'CH']) tk[k] = false;
   for (const k of held.values()) if (k) tk[k] = true;
   for (const b of kbs) b.classList.toggle('on', !!tk[b.dataset.k]);
+  for (const k in ACT) if (tk[k] && !prev[k]) ACT[k]();
 }
 function joyAt(x, y) {
   let dx = x - joy.cx, dy = y - joy.cy;
@@ -662,6 +907,7 @@ function joyRelease() {
 }
 const gameEl = $('game');
 gameEl.addEventListener('touchstart', e => {
+  if (!actx) beep(1, 0.01);
   if (e.target.closest('#reset,#menu')) return;      // bu butonlar normal tıklansın
   e.preventDefault();
   for (const t of e.changedTouches) {
@@ -695,7 +941,7 @@ gameEl.addEventListener('touchcancel', touchEnd);
 
 // Fare ile (bilgisayar) GAZ/ATEŞ
 kbs.forEach(b => {
-  b.addEventListener('mousedown', () => { tk[b.dataset.k] = true; b.classList.add('on'); });
+  b.addEventListener('mousedown', () => { if (ACT[b.dataset.k]) { ACT[b.dataset.k](); return; } tk[b.dataset.k] = true; b.classList.add('on'); });
   b.addEventListener('mouseup', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
   b.addEventListener('mouseleave', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
 });
@@ -708,7 +954,8 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('scroll', () => { if (running) scrollTo(0, 0); });
 
 const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'U', w: 'U', ArrowDown: 'D', s: 'D', Shift: 'T', ' ': 'F', f: 'F' };
-addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
+addEventListener('keydown', e => { if (!e.repeat) { if (e.key === 'm') fireMissileBtn(); if (e.key === 'x') useCM('FL'); if (e.key === 'c') useCM('CH'); }
+  const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 
 $('reset').onclick = () => { send({ t: 'rematch' }); newMatch(); };
