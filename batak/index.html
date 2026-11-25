@@ -58,9 +58,9 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 .card .c1 i{display:block;font-style:normal;font-size:calc(var(--cw,60px)*.28);margin-top:1px}
 .card .c2{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);font-size:calc(var(--cw,60px)*.62);line-height:1}
 .card .fc{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);width:calc(var(--cw,60px)*.6);height:calc(var(--cw,60px)*.78);border:2px solid currentColor;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw,60px)*.36);background:rgba(240,200,80,.18)}
-#panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);background:rgba(7,40,24,.95);border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:5}
-#panel h3{text-align:center;font-size:17px}
-.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+#panel{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(calc(100vw - 128px),360px);padding:12px 10px !important;background:rgba(7,40,24,.95);border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:5}
+#panel h3{text-align:center;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .grid button{padding:12px 0;font-size:17px;border-radius:10px;border:0;background:#2c6e4c;color:#fff;font-weight:800}
 .grid button.pass{grid-column:span 2;background:#7a2b2b}
 .suits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -76,7 +76,7 @@ th{font-size:12px}
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 2 · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 3 · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -589,6 +589,8 @@ function render() {
   }
 
   // mesajlar
+  if (!pn.hidden) { showMsg('', 0); }
+  else
   if (V.phase === 'bid' && V.turn !== me) showMsg(`${V.names[V.turn]} ${V.mode === 'koz' ? 'söylüyor' : 'ihale veriyor'}...`, 99);
   else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} kozu seçiyor...`, 99);
   else if (myTurnPlay) showMsg(V.trick.length ? 'Sıra sende (kartı seç, tekrar dokun)' : 'Eli sen açıyorsun', 99);
