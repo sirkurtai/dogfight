@@ -27,80 +27,106 @@ input,select{width:100%;background:#0b3320;color:#fff;border:1px solid #3c8a62;b
 .seat b{opacity:.75;font-weight:600}
 small.hint{font-size:12px;opacity:.75;text-align:center}
 
-#game{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 42%,#3aa24a 0%,#2a8a3b 45%,#1d6e2d 100%)}
-#handNo{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:10px;font-size:15px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
-#sideBtns{position:absolute;right:6px;z-index:3;bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 10px);display:flex;flex-direction:column;gap:8px}
-#sideBtns button{width:38px;height:38px;border-radius:8px;border:2px solid #e9d7b9;background:#5a3418;color:#fff;font-size:18px}
-.plate{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 14px;border-radius:12px;
-  background:linear-gradient(#8a5530,#5c3217);border:2px solid #e6cfa6;box-shadow:0 2px 6px rgba(0,0,0,.45);font-size:15px;font-weight:800;color:#fff;white-space:nowrap;z-index:2}
-.plate .tk{font-size:12px;font-weight:700;color:#ffe9a8}
-.plate.turn{border-color:#ffe066;box-shadow:0 0 12px #ffe066,0 2px 6px rgba(0,0,0,.45)}
-#p2{left:50%;top:env(safe-area-inset-top);transform:translateX(-50%);border-top:0;border-radius:0 0 14px 14px;padding-top:7px}
-#p1{left:calc(100% - env(safe-area-inset-right) - 21px);top:44%;transform:translate(-50%,-50%) rotate(-90deg);border-top:0;border-radius:0 0 14px 14px}
-#p3{left:calc(env(safe-area-inset-left) + 21px);top:44%;transform:translate(-50%,-50%) rotate(90deg);border-top:0;border-radius:0 0 14px 14px}
-#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 2px);border-bottom:0;border-radius:14px 14px 0 0}
-#myTk{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,200px) + 52px);font-size:15px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
-#p0 .tk{display:none}
-#center{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
-#trumpBox{display:flex;gap:10px;padding:8px 14px;border:2px solid rgba(0,0,0,.45);border-radius:6px;background:rgba(0,0,0,.18)}
-#trumpBox span{font-size:30px;line-height:1;width:32px;text-align:center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
-#trumpBox span.off{opacity:.22}
-#trumpBox span.on{transform:scale(1.25)}
-#info{font-size:13px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.6)}
-#trick{position:absolute;left:50%;top:44%;width:0;height:0;z-index:3}
-#trick .card{position:absolute;left:0;top:0}
-#msg{position:absolute;left:50%;top:calc(44% + 100px);transform:translateX(-50%);background:rgba(0,0,0,.5);padding:6px 14px;border-radius:12px;font-size:14px;font-weight:800;white-space:nowrap;pointer-events:none;z-index:4}
-#hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 4px);height:var(--hh,200px)}
-#hand .card{position:absolute;transition:transform .12s}
-#hand .card.sel{transform:translateY(-20px)}
-#hand .card.no{filter:brightness(.6)}
-.card{width:var(--cw,60px);height:calc(var(--cw,60px)*1.4);border-radius:calc(var(--cw,60px)*.09);background:#fff;color:#111;border:1px solid #bbb;box-shadow:0 1px 4px rgba(0,0,0,.4);font-weight:800;overflow:hidden;font-family:Georgia,'Times New Roman',serif}
-.card.red{color:#d40f1f}
-.card .c1{position:absolute;left:calc(var(--cw,60px)*.07);top:calc(var(--cw,60px)*.04);font-size:calc(var(--cw,60px)*.34);line-height:1;text-align:center;letter-spacing:-1px}
-.card .c1 i{display:block;font-style:normal;font-size:calc(var(--cw,60px)*.28);margin-top:1px}
-.card .c2{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);font-size:calc(var(--cw,60px)*.62);line-height:1}
-.card .fc{position:absolute;left:50%;top:58%;transform:translate(-40%,-50%);width:calc(var(--cw,60px)*.6);height:calc(var(--cw,60px)*.78);border:2px solid currentColor;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw,60px)*.36);background:rgba(240,200,80,.18)}
-#panel{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(calc(100vw - 128px),360px);padding:12px 10px !important;background:rgba(7,40,24,.95);border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:5}
-#panel h3{text-align:center;font-size:15px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.grid button{padding:12px 0;font-size:17px;border-radius:10px;border:0;background:#2c6e4c;color:#fff;font-weight:800}
-.grid button.pass{grid-column:span 2;background:#7a2b2b}
-.suits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.suits button{font-size:34px;padding:8px 0;border-radius:12px;border:0;background:#fdfdfb}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:5px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.15)}
-th{font-size:12px}
-#ovl{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:6;display:flex;align-items:center;justify-content:center}
-#ovl .in{width:min(94vw,420px);max-height:80vh;overflow:auto;background:#0b3320;border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+#game{position:fixed;inset:0;overflow:hidden;background:
+  radial-gradient(ellipse at 50% 38%,rgba(255,255,255,.10) 0%,rgba(0,0,0,0) 55%),
+  repeating-linear-gradient(45deg,rgba(0,0,0,.035) 0 2px,rgba(0,0,0,0) 2px 5px),
+  radial-gradient(ellipse at 50% 40%,#2b8a40 0%,#1d7334 55%,#135526 100%)}
+#wood{position:absolute;left:0;right:0;bottom:0;height:calc(var(--wood,230px) + env(safe-area-inset-bottom));
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 2px,rgba(0,0,0,0) 2px 7px,rgba(255,255,255,.03) 7px 9px,rgba(0,0,0,0) 9px 15px),
+  linear-gradient(180deg,#8e3818 0%,#7a2f13 40%,#64250e 100%);box-shadow:inset 0 10px 14px rgba(0,0,0,.45);border-top:2px solid #4a1a08}
+.tab{position:absolute;color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
+  background:linear-gradient(180deg,#a14c22,#6d2c10);border:2px solid #e3ac45;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:3;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+#t2{left:50%;top:env(safe-area-inset-top);transform:translateX(-50%);border-top:0;border-radius:0 0 14px 14px;padding:7px 26px 6px;min-width:118px;text-align:center}
+#t0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) - 2px);border-bottom:0;border-radius:16px 16px 0 0;padding:8px 34px 6px;min-width:150px;text-align:center}
+#t1,#t3{top:var(--midY,34%);transform:translateY(-50%);padding:24px 6px;writing-mode:vertical-rl}
+#t1{right:env(safe-area-inset-right);border-right:0;border-radius:14px 0 0 14px}
+#t3{left:env(safe-area-inset-left);border-left:0;border-radius:0 14px 14px 0;transform:translateY(-50%) rotate(180deg)}
+.cnt{position:absolute;font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);z-index:3;white-space:nowrap}
+#c2{left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 34px)}
+#c0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 34px)}
+#c1{right:calc(env(safe-area-inset-right) + 36px);top:var(--midY,34%);transform:translateY(-50%)}
+#c3{left:calc(env(safe-area-inset-left) + 36px);top:var(--midY,34%);transform:translateY(-50%)}
+.arr{position:absolute;width:0;height:0;z-index:3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+#a2{left:50%;margin-left:-5px;top:calc(env(safe-area-inset-top) + 50px);border:5px solid transparent;border-bottom:7px solid #ff9a1f;border-top:0}
+#a0{left:50%;margin-left:-5px;bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 50px);border:5px solid transparent;border-top:7px solid #ff9a1f;border-bottom:0}
+#a1{right:calc(env(safe-area-inset-right) + 58px);top:var(--midY,34%);margin-top:-5px;border:5px solid transparent;border-left:7px solid #ff9a1f;border-right:0}
+#a3{left:calc(env(safe-area-inset-left) + 58px);top:var(--midY,34%);margin-top:-5px;border:5px solid transparent;border-right:7px solid #ff9a1f;border-left:0}
+#trumpInd{position:absolute;top:calc(env(safe-area-inset-top) + 8px);right:calc(env(safe-area-inset-right) + 8px);width:30px;height:30px;border-radius:6px;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 1px 4px rgba(0,0,0,.5);z-index:3}
+#handNo{position:absolute;left:calc(env(safe-area-inset-left) + 8px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 8px);font-size:11px;font-weight:700;color:#fff;opacity:.9;z-index:3}
+#gear{position:absolute;right:calc(env(safe-area-inset-right) + 10px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 6px);width:30px;height:30px;border-radius:50%;border:0;
+  background:rgba(0,0,0,.35);color:#fff;font-size:19px;line-height:30px;z-index:4}
+#trick{position:absolute;width:0;height:0;z-index:2}
+#trick .card{position:absolute;left:0;top:0;transition:transform .35s cubic-bezier(.2,.8,.3,1),opacity .35s}
+#hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 6px);height:var(--hh,200px);z-index:3}
+#hand .card{position:absolute;transform-origin:50% 100%}
+#hand .card.no{filter:brightness(.62)}
+#hand .card.shake{animation:shake .3s}
+@keyframes shake{25%{margin-left:-5px}75%{margin-left:5px}}
+.card{width:var(--cw,70px);height:calc(var(--cw,70px)*1.42);border-radius:calc(var(--cw,70px)*.08);background:#fff;color:#1b1b1b;
+  border:1px solid #c9c9c9;box-shadow:0 1px 3px rgba(0,0,0,.45);overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif}
+.card.red{color:#d8131f}
+.card .idx{position:absolute;left:calc(var(--cw,70px)*.06);top:calc(var(--cw,70px)*.04);text-align:center;line-height:.95;width:calc(var(--cw,70px)*.32)}
+.card .idx b{display:block;font-size:calc(var(--cw,70px)*.34);font-weight:700;letter-spacing:-1.5px}
+.card .idx i{display:block;font-style:normal;font-size:calc(var(--cw,70px)*.27)}
+.card .pip{position:absolute;right:calc(var(--cw,70px)*.08);bottom:calc(var(--cw,70px)*.08);font-size:calc(var(--cw,70px)*.62);line-height:1}
+.card .ace{position:absolute;left:50%;top:56%;transform:translate(-45%,-50%);font-size:calc(var(--cw,70px)*.78);line-height:1}
+.card .face{position:absolute;left:calc(var(--cw,70px)*.36);right:calc(var(--cw,70px)*.08);top:calc(var(--cw,70px)*.2);bottom:calc(var(--cw,70px)*.1);border-radius:4px;
+  border:1.5px solid currentColor;background:linear-gradient(160deg,#f7e3a1 0%,#f2c25a 40%,#2f5fb3 41%,#3a6fc8 70%,#c83a2c 71%,#e0574a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit}
+.card .face b{font-size:calc(var(--cw,70px)*.36);font-family:Georgia,serif;background:rgba(255,255,255,.85);border-radius:4px;padding:0 3px;line-height:1.1}
+.card .face i{font-style:normal;font-size:calc(var(--cw,70px)*.26);background:rgba(255,255,255,.85);border-radius:50%;margin-top:2px;padding:0 2px}
+#msg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 58px);background:rgba(0,0,0,.55);padding:5px 12px;border-radius:12px;font-size:13px;font-weight:700;white-space:nowrap;pointer-events:none;z-index:4}
+#panel{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);background:rgba(28,28,28,.94);border-radius:16px;padding:12px;z-index:6;box-shadow:0 4px 14px rgba(0,0,0,.6);width:min(62vw,250px)}
+#panel .cap{text-align:center;font-size:13px;font-weight:700;margin-bottom:8px;color:#f5f5f5}
+.ob{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ob button{border:0;border-radius:7px;padding:10px 0;font-size:20px;font-weight:800;color:#5a2a00;font-family:Georgia,serif;
+  background:linear-gradient(180deg,#ffd36a 0%,#f7a81c 55%,#ee8f0d 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #9a5a06}
+.ob button:active{transform:translateY(1px)}
+.ob button.pas{grid-column:1/-1;background:linear-gradient(180deg,#fff,#d9d9d9);color:#222;letter-spacing:2px;box-shadow:inset 0 1px 0 #fff,0 2px 0 #888}
+.ob.suit button{font-size:34px;padding:6px 0;background:linear-gradient(180deg,#fff,#e6e6e6);box-shadow:0 2px 0 #888}
+#ovl{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25)}
+#ovl .in{width:min(82vw,330px);max-height:80vh;overflow:auto;background:rgba(30,30,30,.96);border-radius:18px;padding:16px 16px 18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.6)}
+.rrow{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:5px 2px}
+.rrow .nm{flex:1}
+.rrow .sc{min-width:28px;text-align:right}
+.badge{min-width:22px;height:22px;border-radius:11px;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 5px;color:#fff}
+.badge.g{background:#1fb35a}.badge.r{background:#e14848}
+.dot{width:12px;height:12px;border-radius:50%}.dot.g{background:#22c55e}.dot.r{background:#ef4444}
+.pill{align-self:center;border:0;border-radius:20px;padding:9px 34px;font-size:16px;font-weight:800;color:#fff;background:linear-gradient(180deg,#22c768,#11a04f);box-shadow:0 2px 0 #0a6e35;margin-top:6px;letter-spacing:.5px}
+.pill.gray{background:linear-gradient(180deg,#666,#444);box-shadow:0 2px 0 #222}
+.notes{color:#ff8f8f;text-align:center;font-weight:800;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 4 · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 5 · Batak HD görünümü · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
     <input id="name" maxlength="14" placeholder="Adın">
     <p style="text-align:center;font-size:14px">Oyun türü</p>
     <div class="row">
-      <button class="btn opt sel" data-mode="koz">Koz Maça</button>
-      <button class="btn opt" data-mode="ihale">İhaleli</button>
+      <button class="btn opt sel" data-mode="ihale">İhaleli</button>
+      <button class="btn opt" data-mode="koz">Koz Maça</button>
     </div>
     <p style="text-align:center;font-size:14px">Kaç el oynansın?</p>
     <div class="row">
-      <button class="btn opt" data-hands="4">4</button>
-      <button class="btn opt sel" data-hands="8">8</button>
-      <button class="btn opt" data-hands="12">12</button>
-      <button class="btn opt" data-hands="16">16</button>
+      <button class="btn opt" data-hands="5">5</button>
+      <button class="btn opt sel" data-hands="11">11</button>
+      <button class="btn opt" data-hands="15">15</button>
+      <button class="btn opt" data-hands="21">21</button>
     </div>
     <button class="btn" id="bHost">Oda Kur (arkadaşlarla)</button>
     <button class="btn sec" id="bSolo">3 bota karşı hemen oyna</button>
     <p style="text-align:center;margin-top:6px;font-size:14px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace">
     <button class="btn dark" id="bJoin">Katıl</button>
-    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: en yüksek ihaleyi veren kozu seçer ve ilk eli açar.</small>
+    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar.</small>
     <p style="text-align:center;font-size:13px"><a href="../" style="color:#f2c14e">✈ Dogfight oyununa dön</a></p>
   </div>
 
@@ -125,16 +151,16 @@ th{font-size:12px}
 </div>
 
 <div id="game" hidden>
+  <div id="wood"></div>
+  <div class="tab" id="t2"></div><div class="cnt" id="c2"></div><div class="arr" id="a2" hidden></div>
+  <div class="tab" id="t1"></div><div class="cnt" id="c1"></div><div class="arr" id="a1" hidden></div>
+  <div class="tab" id="t3"></div><div class="cnt" id="c3"></div><div class="arr" id="a3" hidden></div>
+  <div class="tab" id="t0"></div><div class="cnt" id="c0"></div><div class="arr" id="a0" hidden></div>
+  <div id="trumpInd" hidden></div>
   <div id="handNo"></div>
-  <div class="plate" id="p2"><span class="nm"></span><span class="tk"></span></div>
-  <div class="plate" id="p1"><span class="nm"></span><span class="tk"></span></div>
-  <div class="plate" id="p3"><span class="nm"></span><span class="tk"></span></div>
-  <div id="center"><div id="trumpBox"></div><div id="info"></div></div>
+  <button id="gear" title="Menü">⚙</button>
   <div id="trick"></div>
   <div id="msg" hidden></div>
-  <div class="plate" id="p0"><span class="nm"></span><span class="tk"></span></div>
-  <div id="myTk"></div>
-  <div id="sideBtns"><button id="bSort" title="Sırala">⇅</button><button id="bScore" title="Ayarlar">⚙</button></div>
   <div id="hand"></div>
   <div id="panel" hidden></div>
   <div id="ovl" hidden><div class="in" id="ovlIn"></div></div>
@@ -195,7 +221,7 @@ let G = null;          // yalnızca oda kuranda
 let isHost = false, mySeat = 0, V = null;   // V: ekrana çizilen görünüm
 let peer = null, hostConn = null;
 const conns = [null, null, null, null];
-let mode = 'koz', handsTotal = 8;
+let mode = 'ihale', handsTotal = 11;
 
 function newSeats() {
   return [{ name: myName || 'Ben', type: 'host' }, { name: '', type: 'empty' }, { name: '', type: 'empty' }, { name: '', type: 'empty' }];
@@ -216,10 +242,10 @@ function startHand() {
   G.bids = [null, null, null, null]; G.passed = [false, false, false, false];
   G.highBid = 0; G.highBidder = null;
   G.trump = G.mode === 'koz' ? 'S' : null; G.broken = false;
-  G.trick = []; G.tricks = [0, 0, 0, 0]; G.played = []; G.lastTrick = null; G.result = null;
+  G.trick = []; G.tricks = [0, 0, 0, 0]; G.played = []; G.lastTrick = null; G.result = null; G.lastWinner = null;
   G.turn = (G.dealer + 1) % 4;
   G.phase = 'bid';
-  G.msg = (G.mode === 'koz' ? 'Herkes kaç el alacağını söylüyor' : 'İhale başladı (en az 5)');
+  G.msg = '';
   pushState();
 }
 const next = p => (p + 1) % 4;
@@ -237,7 +263,7 @@ function act(p, a) {                 // p: koltuk, a: hamle
       const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
       const mustBid = active.length === 1 && G.highBidder == null;
       if (v === 0) { if (mustBid) return; G.passed[p] = true; G.bids[p] = 'Pas'; }
-      else { if (v < Math.max(5, G.highBid + 1) || v > 13) return; G.highBid = v; G.highBidder = p; G.bids[p] = v; }
+      else { if (v < Math.max(4, G.highBid + 1) || v > 13) return; G.highBid = v; G.highBidder = p; G.bids[p] = v; }
       const act2 = [0, 1, 2, 3].filter(i => !G.passed[i]);
       if (act2.length === 1 && G.highBidder === act2[0]) {
         G.phase = 'trump'; G.turn = G.highBidder; G.msg = `${G.seats[G.highBidder].name} ihaleyi ${G.highBid} ile aldı`;
@@ -263,10 +289,15 @@ function act(p, a) {                 // p: koltuk, a: hamle
     const w = trickWinner(G.trick, G.trump);
     G.busy = true; G.turn = -1; pushState();
     setTimeout(() => {
-      G.tricks[w]++; G.lastTrick = G.trick; G.trick = []; G.busy = false; G.turn = w;
+      G.tricks[w]++; G.lastTrick = G.trick; G.lastWinner = w; G.trick = []; G.busy = false; G.turn = w;
       if (G.hands.every(h => !h.length)) endHand(); else pushState();
     }, 1300);
   }
+}
+function nextHand() {
+  clearTimeout(G.autoNext);
+  if (!G || G.phase !== 'handEnd') return;
+  G.dealer = next(G.dealer); startHand();
 }
 function endHand() {
   const d = [0, 0, 0, 0], notes = [];
@@ -290,7 +321,8 @@ function endHand() {
   G.phase = G.handNo >= G.handsTotal ? 'over' : 'handEnd';
   G.turn = -1;
   pushState();
-  if (G.phase === 'handEnd') setTimeout(() => { G.dealer = next(G.dealer); startHand(); }, 5000);
+  clearTimeout(G.autoNext);
+  if (G.phase === 'handEnd') G.autoNext = setTimeout(nextHand, 30000);
 }
 
 /* ---------- bot ---------- */
@@ -314,9 +346,9 @@ function botBid(p) {
   const h = G.hands[p];
   if (G.mode === 'koz') return { t: 'bid', v: Math.max(1, Math.min(13, Math.round(estimate(h, 'S')))) };
   let best = 0; for (const s of SUITS) best = Math.max(best, estimate(h, s));
-  const need = Math.max(5, G.highBid + 1);
+  const need = Math.max(4, G.highBid + 1);
   const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
-  if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: 5 };
+  if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: 4 };
   return best + 0.4 >= need && need <= 13 ? { t: 'bid', v: need } : { t: 'bid', v: 0 };
 }
 function botTrump(p) {
@@ -365,7 +397,7 @@ function viewFor(p) {
     bids: G.bids, passed: G.passed, highBid: G.highBid, highBidder: G.highBidder,
     trump: G.trump, broken: G.broken, trick: G.trick, tricks: G.tricks, scores: G.scores,
     counts: G.hands.map(h => h.length), hand: G.hands[p], handNo: G.handNo, handsTotal: G.handsTotal,
-    history: G.history, result: G.result, msg: G.msg
+    history: G.history, result: G.result, msg: G.msg, lastWinner: G.lastWinner
   };
 }
 function pushState() {
@@ -457,7 +489,7 @@ function onGuestData(d) {
   if (d.t === 'st') { mySeat = d.you; V = d; render(); }
 }
 function send(a) {
-  if (isHost) act(0, a);
+  if (isHost) { if (a.t === 'next') nextHand(); else act(0, a); }
   else if (hostConn && hostConn.open) hostConn.send(a);
 }
 
@@ -494,160 +526,220 @@ $('bShare').onclick = () => {
 };
 
 /* ======================= ÇİZİM ======================= */
-let selCard = null, sortMode = 0;   // 0: renk, 1: değer
-const rel = s => (s - V.you + 4) % 4;      // 0 ben, 1 sağ, 2 karşı, 3 sol (oyun sağa doğru döner)
+let sortMode = 0, menuOpen = false, resultClosed = -1;
+const rel = s => (s - V.you + 4) % 4;          // 0 ben (alt), 1 sağ, 2 karşı (üst), 3 sol — oyun sağa doğru döner
+const isRed = s => s === 'H' || s === 'D';
+const up = t => String(t).toLocaleUpperCase('tr');
+function hashRot(c) { let h = 7; for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) % 9973; return (h % 29) - 14; }
 function cardEl(c) {
   const d = document.createElement('div');
-  const s = suitOf(c);
-  d.className = 'card' + (s === 'H' || s === 'D' ? ' red' : '');
-  const r = rankOf(c);
-  d.innerHTML = `<div class="c1">${RN(r)}<i>${SYM[s]}</i></div>` + (r >= 11 && r <= 13 ? `<div class="fc">${SYM[s]}</div>` : `<div class="c2">${SYM[s]}</div>`);
+  const s = suitOf(c), r = rankOf(c);
+  d.className = 'card' + (isRed(s) ? ' red' : '');
+  const mid = r >= 11 && r <= 13 ? `<div class="face"><b>${RN(r)}</b><i>${SYM[s]}</i></div>` : r === 14 ? `<div class="ace">${SYM[s]}</div>` : `<div class="pip">${SYM[s]}</div>`;
+  d.innerHTML = `<div class="idx"><b>${RN(r)}</b><i>${SYM[s]}</i></div>${mid}`;
   return d;
 }
 let msgT = null;
 function showMsg(t, sec = 2.5) {
-  const m = $('msg'); m.textContent = t; m.hidden = !t;
+  const m = $('msg'); m.textContent = t || ''; m.hidden = !t;
   clearTimeout(msgT); if (t && sec < 90) msgT = setTimeout(() => m.hidden = true, sec * 1000);
 }
+let LY = {};
+function computeLayout() {
+  const W = innerWidth, H = innerHeight;
+  const cw = Math.min(W * 0.2, 92, (W - 30) / (7 * 0.64 + 0.36));
+  const ch = cw * 1.42, step = cw * 0.64, rowGap = ch * 0.5;
+  const hh = ch + rowGap + 12;
+  const wood = hh + 16;
+  const root = document.documentElement.style;
+  root.setProperty('--hh', hh + 'px'); root.setProperty('--wood', wood + 'px');
+  const feltTop = 30, feltBot = H - wood - 60;
+  const cy = (feltTop + feltBot) / 2 + 6;
+  root.setProperty('--midY', cy + 'px');
+  LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy };
+}
+function countText(s) {
+  const b = V.bids[s];
+  if (V.phase === 'bid') return b == null ? '' : b === 'Pas' ? 'PAS' : String(b);
+  if (V.mode === 'koz') return b != null ? `${V.tricks[s]}:${b}` : String(V.tricks[s]);
+  return s === V.highBidder ? `${V.tricks[s]}:${V.highBid}` : String(V.tricks[s]);
+}
+
+// ortadaki el: kartlar oyuncunun tarafından uçarak gelir, el bitince kazanana gider
+const trickEls = new Map();
+let trickOut = false;
+function trickPos(r, k) {
+  const tcw = LY.cw * 0.92, tch = tcw * 1.42;
+  const off = [[0, tch * 0.36], [tcw * 0.55, -tch * 0.02], [0, -tch * 0.4], [-tcw * 0.55, tch * 0.02]][r];
+  return [off[0] - tcw / 2, off[1] - tch / 2];
+}
+function fromPos(r) {
+  const { W, H } = LY;
+  return [[0, H * 0.55], [W * 0.6, -40], [0, -H * 0.5], [-W * 0.6, -40]][r];
+}
+function renderTrick() {
+  const tr = $('trick');
+  tr.style.left = LY.cx + 'px'; tr.style.top = LY.cy + 'px';
+  const tcw = LY.cw * 0.92;
+  if (!V.trick.length) {
+    if (trickEls.size && !trickOut) {
+      trickOut = true;
+      const w = V.lastWinner != null ? rel(V.lastWinner) : 2;
+      const [fx, fy] = fromPos(w);
+      for (const e of trickEls.values()) { e.style.transform = `translate(${fx * 0.75 - tcw / 2}px,${fy * 0.75}px) rotate(0deg) scale(.6)`; e.style.opacity = '0'; }
+      setTimeout(() => { for (const e of trickEls.values()) e.remove(); trickEls.clear(); trickOut = false; }, 380);
+    }
+    return;
+  }
+  if (trickOut) { for (const e of trickEls.values()) e.remove(); trickEls.clear(); trickOut = false; }
+  const keep = new Set(V.trick.map(t => t.c));
+  for (const [c, e] of trickEls) if (!keep.has(c)) { e.remove(); trickEls.delete(c); }
+  V.trick.forEach((t, i) => {
+    const r = rel(t.p), [x, y] = trickPos(r), rot = hashRot(t.c);
+    let e = trickEls.get(t.c);
+    if (!e) {
+      e = cardEl(t.c); e.style.setProperty('--cw', tcw + 'px'); e.style.zIndex = i + 1;
+      const [sx, sy] = fromPos(r);
+      e.style.transition = 'none';
+      e.style.transform = `translate(${sx - tcw / 2}px,${sy}px) rotate(${rot * 3}deg)`;
+      $('trick').appendChild(e); trickEls.set(t.c, e);
+      void e.offsetWidth; e.style.transition = '';
+    }
+    e.style.setProperty('--cw', tcw + 'px');
+    e.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`;
+  });
+}
+
 function render() {
   if (!V) return;
   $('lobby').hidden = true; $('game').hidden = false;
-  const me = V.you, W = innerWidth;
-  $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
-  { const b = V.bids[me]; $('myTk').textContent = V.mode === 'koz' ? (b != null ? `${b} : ${V.tricks[me]}` : '') : `${V.tricks[me]}${me === V.highBidder && V.phase !== 'bid' ? ' / ' + V.highBid : ''}`; }
-  $('trumpBox').innerHTML = SUITS.map(s => `<span class="${V.trump ? (s === V.trump ? 'on' : 'off') : ''}" style="color:${s === 'H' || s === 'D' ? '#e0182b' : '#111'}">${SYM[s]}</span>`).join('');
-  $('info').textContent = V.mode === 'koz' ? 'Koz Maça' : (V.highBidder != null && V.phase !== 'bid' ? `İhale: ${V.names[V.highBidder]} ${V.highBid}` : 'İhaleli');
+  computeLayout();
+  const me = V.you;
+
   for (let s = 0; s < 4; s++) {
-    const pl = $('p' + rel(s));
-    pl.classList.toggle('turn', V.turn === s);
-    pl.querySelector('.nm').textContent = (s === me ? 'Siz' : V.names[s]) + '  ' + V.scores[s];
-    const b = V.bids[s];
-    let tk = `${V.tricks[s]}`;
-    if (V.mode === 'koz') tk += b != null ? ` : ${b}` : '';
-    else if (b === 'Pas') tk += ' · Pas'; else if (b != null) tk += ` · ihale ${b}`;
-    pl.querySelector('.tk').textContent = (s === V.dealer ? '● ' : '') + tk;
+    const r = rel(s);
+    $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])} ${V.scores[s]}`;
+    $('c' + r).textContent = countText(s);
+    $('a' + r).hidden = !(V.turn === s && ['bid', 'trump', 'play'].includes(V.phase));
   }
+  const ti = $('trumpInd');
+  ti.hidden = !V.trump || V.phase === 'bid';
+  if (V.trump) { ti.textContent = SYM[V.trump]; ti.style.color = isRed(V.trump) ? '#d8131f' : '#111'; }
+  $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
 
-  // ortadaki el
-  const tr = $('trick'); tr.innerHTML = '';
-  const tcw = Math.min(64, W * 0.16);
-  const off = [[0, 0.62], [0.72, 0], [0, -0.62], [-0.72, 0]];
-  for (const t of V.trick) {
-    const e = cardEl(t.c); const [x, y] = off[rel(t.p)];
-    e.style.setProperty('--cw', tcw + 'px');
-    e.style.transform = `translate(calc(-50% + ${x * tcw * 1.4}px), calc(-50% + ${y * tcw * 1.4}px))`;
-    tr.appendChild(e);
-  }
+  renderTrick();
 
-  // elim
+  // elim: iki sıra, hafif yelpaze
   let hand = V.hand || [];
   if (sortMode === 1) hand = hand.slice().sort((a, b) => rankOf(b) - rankOf(a) || SUITS.indexOf(suitOf(a)) - SUITS.indexOf(suitOf(b)));
-  const n = hand.length || 1;
+  const n = hand.length;
   const rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
-  const cw = Math.min(W * 0.22, 96, (W - 12) / (perRow * 0.72 + 0.28));
-  const ch = cw * 1.4, step = perRow > 1 ? Math.min(cw * 0.9, (W - 12 - cw) / (perRow - 1)) : 0;
-  const rowGap = ch * 0.5;
-  const hh = ch + (rows - 1) * rowGap + 4;
-  document.documentElement.style.setProperty('--hh', hh + 'px');
   const hEl = $('hand'); hEl.innerHTML = '';
-  const myTurnPlay = V.phase === 'play' && V.turn === me;
-  const legal = myTurnPlay ? legalCards(hand, V.trick, V.trump, V.broken) : [];
-  if (selCard && !hand.includes(selCard)) selCard = null;
+  const myTurnPlay = V.phase === 'play' && V.turn === me && V.trick.length < 4;
+  const legal = myTurnPlay ? legalCards(V.hand, V.trick, V.trump, V.broken) : [];
   hand.forEach((c, i) => {
     const row = rows === 2 && i >= perRow ? 1 : 0, col = row ? i - perRow : i;
-    const inRow = row ? n - perRow : Math.min(n, perRow);
-    const rowW = cw + step * (inRow - 1);
-    const e = cardEl(c); e.style.setProperty('--cw', cw + 'px');
-    e.style.left = ((W - rowW) / 2 + col * step) + 'px';
-    e.style.top = (row * rowGap + 4) + 'px';
+    const k = row ? n - perRow : Math.min(n, perRow);
+    const mid = (k - 1) / 2, d = col - mid;
+    const rowW = LY.cw + LY.step * (k - 1);
+    const e = cardEl(c); e.style.setProperty('--cw', LY.cw + 'px');
+    e.style.left = ((LY.W - rowW) / 2 + col * LY.step) + 'px';
+    e.style.top = ((rows === 2 ? row : 1) * LY.rowGap * (rows === 2 ? 1 : 0.5) + 6 + d * d * 0.9) + 'px';
+    e.style.transform = `rotate(${d * 1.5}deg)`;
     e.style.zIndex = row * 20 + col;
     if (myTurnPlay && !legal.includes(c)) e.classList.add('no');
-    if (c === selCard) e.classList.add('sel');
     e.onclick = () => {
-      if (!myTurnPlay) return showMsg(V.phase === 'play' ? 'Sıra sende değil' : '', 1.2);
-      if (!legal.includes(c)) return showMsg(ruleHint(hand), 2);
-      if (selCard === c) { selCard = null; send({ t: 'play', c }); }
-      else { selCard = c; render(); }
+      if (!myTurnPlay) { if (V.phase === 'play') showMsg('Sıra sizde değil', 1.2); return; }
+      if (!legal.includes(c)) { e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); showMsg(ruleHint(V.hand), 2.2); return; }
+      send({ t: 'play', c });
     };
     hEl.appendChild(e);
   });
 
-  // paneller
+  // ihale / söyleme / koz paneli
   const pn = $('panel'); pn.hidden = true; pn.innerHTML = '';
   if (V.phase === 'bid' && V.turn === me) {
     pn.hidden = false;
     if (V.mode === 'koz') {
-      pn.innerHTML = `<h3>Kaç el alacaksın? (koz ♠)</h3><div class="grid">${Array.from({ length: 13 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`;
+      pn.innerHTML = `<div class="cap">Kaç el alacaksınız? (koz ♠)</div><div class="ob">${Array.from({ length: 13 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`;
     } else {
-      const min = Math.max(5, V.highBid + 1);
+      const min = Math.max(4, V.highBid + 1);
       const mustBid = V.passed.filter(x => !x).length === 1 && V.highBidder == null;
-      let h = `<h3>İhale ${V.highBidder != null ? `(şu an ${esc(V.names[V.highBidder])}: ${V.highBid})` : '(en az 5)'}</h3><div class="grid">`;
+      let h = `<div class="ob">`;
       for (let v = min; v <= 13; v++) h += `<button data-v="${v}">${v}</button>`;
-      if (!mustBid) h += `<button class="pass" data-v="0">Pas</button>`;
-      pn.innerHTML = h + '</div>' + (mustBid ? '<small class="hint">Herkes pas dedi, ihaleyi sen almak zorundasın.</small>' : '');
+      if (!mustBid) h += `<button class="pas" data-v="0">PAS</button>`;
+      pn.innerHTML = (mustBid ? '<div class="cap">Herkes pas dedi, ihale sizde</div>' : '') + h + '</div>';
     }
     pn.querySelectorAll('[data-v]').forEach(b => b.onclick = () => send({ t: 'bid', v: +b.dataset.v }));
   } else if (V.phase === 'trump' && V.turn === me) {
     pn.hidden = false;
-    pn.innerHTML = `<h3>İhale senin (${V.highBid}). Kozu seç:</h3><div class="suits">${SUITS.map(s => `<button data-s="${s}" style="color:${s === 'H' || s === 'D' ? '#d0142c' : '#111'}">${SYM[s]}</button>`).join('')}</div>`;
+    pn.innerHTML = `<div class="cap">İhale sizde (${V.highBid}). Koz seçin</div><div class="ob suit" style="grid-template-columns:repeat(2,1fr)">${SUITS.map(s => `<button data-s="${s}" style="color:${isRed(s) ? '#d8131f' : '#111'}">${SYM[s]}</button>`).join('')}</div>`;
     pn.querySelectorAll('[data-s]').forEach(b => b.onclick = () => send({ t: 'trump', s: b.dataset.s }));
   }
 
-  // mesajlar
-  if (!pn.hidden) { showMsg('', 0); }
-  else
-  if (V.phase === 'bid' && V.turn !== me) showMsg(`${V.names[V.turn]} ${V.mode === 'koz' ? 'söylüyor' : 'ihale veriyor'}...`, 99);
-  else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} kozu seçiyor...`, 99);
-  else if (myTurnPlay) showMsg(V.trick.length ? 'Sıra sende (kartı seç, tekrar dokun)' : 'Eli sen açıyorsun', 99);
-  else if (V.msg) showMsg(V.msg, 3);
-  else if (V.phase === 'play') showMsg('', 0);
+  // kısa mesajlar
+  if (!pn.hidden) showMsg('', 0);
+  else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} koz seçiyor...`, 99);
+  else if (myTurnPlay && !V.trick.length) showMsg('Eli siz açıyorsunuz', 2);
+  else if (V.msg) showMsg(V.msg, 2.5);
+  else showMsg('', 0);
 
-  // el sonu / oyun sonu
-  if ((V.phase === 'handEnd' || V.phase === 'over') && V.result) showResult();
-  else if (!scoreOpen) $('ovl').hidden = true;
+  // el sonu / oyun sonu / menü
+  if (V.phase === 'over') showResult();
+  else if (V.phase === 'handEnd' && V.result && resultClosed !== V.handNo) showResult();
+  else if (menuOpen) showMenu();
+  else $('ovl').hidden = true;
 }
 function ruleHint(hand) {
   if (!V.trick.length) return 'Koz kırılmadan kozla el açılmaz';
   const led = suitOf(V.trick[0].c);
-  if (hand.some(c => suitOf(c) === led)) return `${SNAME[led]} vermek ve mümkünse üstüne çıkmak zorundasın`;
-  return 'Elinde o renk yok: koz atmak (mümkünse yükseltmek) zorundasın';
+  if (hand.some(c => suitOf(c) === led)) return `${SNAME[led]} vermeli, mümkünse yükseltmelisiniz`;
+  return 'O renk yok: koz atmalısınız (mümkünse yükselterek)';
 }
 function scoreTable() {
-  let h = '<table><tr><th>El</th>' + V.names.map((n, i) => `<th>${i === V.you ? 'Sen' : esc(n)}</th>`).join('') + '</tr>';
+  let h = '<table><tr><th>El</th>' + V.names.map((n, i) => `<th>${i === V.you ? 'SİZ' : esc(up(n))}</th>`).join('') + '</tr>';
   V.history.forEach((r, i) => {
     h += `<tr><td>${i + 1}${r.trump ? ' ' + SYM[r.trump] : ''}</td>` + r.d.map((x, p) => `<td style="color:${x < 0 ? '#ff7b7b' : '#bff5cf'}">${x > 0 ? '+' : ''}${x}${r.hb === p ? '*' : ''}</td>`).join('') + '</tr>';
   });
-  h += '<tr><th>Toplam</th>' + V.scores.map(s => `<th>${s}</th>`).join('') + '</tr></table>';
-  return h;
+  return h + '<tr><th>Top.</th>' + V.scores.map(s => `<th>${s}</th>`).join('') + '</tr></table>';
 }
-let scoreOpen = false;
 function showResult() {
-  const r = V.result, o = $('ovl');
+  const o = $('ovl'), r = V.result;
   o.hidden = false;
-  let h = `<h3 style="text-align:center">${V.phase === 'over' ? 'Oyun bitti!' : `El ${V.handNo} bitti`}</h3>`;
-  if (r.notes.length) h += `<p style="text-align:center;color:#ff9a9a;font-weight:800">${r.notes.map(esc).join('<br>')}</p>`;
-  h += scoreTable();
+  const order = [0, 1, 2, 3].sort((a, b) => V.scores[b] - V.scores[a]);
+  let h = '';
   if (V.phase === 'over') {
-    const best = Math.max(...V.scores);
-    const win = V.names.filter((n, i) => V.scores[i] === best).map((n, i) => n);
-    h += `<p style="text-align:center;font-size:18px;font-weight:900">🏆 Kazanan: ${win.map(esc).join(', ')} (${best})</p>`;
-    h += isHost ? '<button class="btn" id="bAgain">Yeni oyun</button>' : '<small class="hint">Yeni oyunu oda sahibi başlatabilir.</small>';
-    h += '<button class="btn dark" id="bMenu">Ana menü</button>';
-  } else h += '<small class="hint">Sonraki el birazdan dağıtılıyor...</small>';
+    const best = V.scores[order[0]];
+    for (const p of order) {
+      const win = V.scores[p] === best;
+      h += `<div class="rrow"><span class="nm">${p === V.you ? 'SİZ' : esc(up(V.names[p]))} ${win ? (p === V.you ? 'KAZANDINIZ' : 'KAZANDI') : (p === V.you ? 'KAYBETTİNİZ' : 'KAYBETTİ')}</span><span class="sc">${V.scores[p]}</span><span class="dot ${win ? 'g' : 'r'}"></span></div>`;
+    }
+    h += isHost ? '<button class="pill" id="bAgain">YENİ OYUN</button>' : '<div style="text-align:center;font-size:12px;opacity:.75">Yeni oyunu oda sahibi başlatır</div>';
+    h += '<button class="pill gray" id="bMenu2">ANA MENÜ</button>';
+  } else {
+    if (r && r.notes.length) h += `<div class="notes">${r.notes.map(esc).join('<br>')}</div>`;
+    for (const p of order) {
+      const d = r ? r.d[p] : 0;
+      h += `<div class="rrow"><span class="nm">${p === V.you ? 'SİZ' : esc(up(V.names[p]))}</span><span class="sc">${V.scores[p]}</span><span class="badge ${d < 0 ? 'r' : 'g'}">${d > 0 ? '+' : ''}${d}</span></div>`;
+    }
+    h += '<button class="pill" id="bNext">YENİ EL</button>';
+  }
   $('ovlIn').innerHTML = h;
-  if ($('bAgain')) $('bAgain').onclick = () => { hostStart(); };
-  if ($('bMenu')) $('bMenu').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
+  if ($('bAgain')) $('bAgain').onclick = () => hostStart();
+  if ($('bMenu2')) $('bMenu2').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
+  if ($('bNext')) $('bNext').onclick = () => { resultClosed = V.handNo; if (isHost) send({ t: 'next' }); else render(); };
 }
-$('bScore').onclick = () => {
-  if (!V) return;
-  scoreOpen = true;
+function showMenu() {
   $('ovl').hidden = false;
-  $('ovlIn').innerHTML = '<h3 style="text-align:center">Puan tablosu</h3>' + scoreTable() + '<small class="hint">* ihaleyi alan</small><button class="btn" id="bClose">Oyuna dön</button><button class="btn dark" id="bQuit">Oyundan çık (ana menü)</button>';
-  $('bClose').onclick = () => { scoreOpen = false; $('ovl').hidden = true; };
-  $('bQuit').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
-};
+  $('ovlIn').innerHTML = '<div style="text-align:center;font-weight:800">PUAN TABLOSU</div>' + scoreTable() +
+    `<button class="pill gray" id="mSort">${sortMode ? 'RENGE GÖRE SIRALA' : 'DEĞERE GÖRE SIRALA'}</button>` +
+    '<button class="pill" id="mClose">OYUNA DÖN</button><button class="pill gray" id="mQuit">OYUNDAN ÇIK</button>';
+  $('mSort').onclick = () => { sortMode = 1 - sortMode; menuOpen = false; render(); };
+  $('mClose').onclick = () => { menuOpen = false; render(); };
+  $('mQuit').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
+}
+$('gear').onclick = () => { menuOpen = true; render(); };
 addEventListener('resize', render);
-$('bSort').onclick = () => { sortMode = 1 - sortMode; render(); };
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
