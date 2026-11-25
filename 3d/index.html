@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{height:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{position:fixed;inset:0;width:100%;height:100%;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
 #lobby{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 20px) 16px 20px;overflow:auto;z-index:5;background:#0b1020}
 #lobby h1{font-size:28px;margin-top:8px}
 #status{font-size:14px;opacity:.85;text-align:center;max-width:420px}
@@ -24,8 +24,8 @@ a{color:#8fb4ff}
 .opt.sel{background:#2d6cdf;outline:2px solid #fff}
 #game{position:fixed;inset:0}
 #game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:0;right:0;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
-#info{position:absolute;top:calc(env(safe-area-inset-top) + 32px);left:0;right:0;text-align:center;font-size:12px;font-weight:600;pointer-events:none;text-shadow:0 1px 3px #000;opacity:.9}
+#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 132px);right:8px;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
+#info{position:absolute;top:calc(env(safe-area-inset-top) + 32px);left:calc(env(safe-area-inset-left) + 132px);right:8px;text-align:center;font-size:12px;font-weight:600;pointer-events:none;text-shadow:0 1px 3px #000;opacity:.9}
 #warn{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:18px;font-weight:800;color:#ffd166;pointer-events:none;text-shadow:0 1px 3px #000}
 #cross{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none}
 #cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
@@ -35,7 +35,10 @@ a{color:#8fb4ff}
 #tgt span{position:absolute;top:48px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#ff4d6d;white-space:nowrap;text-shadow:0 1px 2px #000}
 #arrow{position:absolute;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #ff4d6d;margin:-11px 0 0 -12px;pointer-events:none;filter:drop-shadow(0 0 2px #000)}
 #flash{position:absolute;inset:0;background:#ff0033;opacity:0;pointer-events:none;transition:opacity .25s}
-#joy{position:absolute;left:calc(env(safe-area-inset-left) + 18px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);touch-action:none}
+#game{touch-action:none}
+#radar{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 8px);width:116px;height:116px;pointer-events:none}
+#joyHint{position:absolute;left:0;bottom:0;width:50%;height:60%;pointer-events:none}
+#joy{pointer-events:none;position:absolute;left:calc(env(safe-area-inset-left) + 18px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);touch-action:none}
 #knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none}
 #pad2{position:absolute;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 16px);display:flex;gap:12px;align-items:flex-end}
 .kb{width:84px;height:84px;border-radius:50%;border:2px solid #3a5288;background:rgba(45,108,223,.45);color:#fff;font-size:15px;font-weight:800}
@@ -86,6 +89,7 @@ a{color:#8fb4ff}
   <div id="tgt" hidden><span></span></div>
   <div id="arrow" hidden></div>
   <div id="flash"></div>
+  <canvas id="radar" width="232" height="232"></canvas>
   <div id="hud"></div>
   <div id="info"></div>
   <div id="warn"></div>
@@ -280,6 +284,7 @@ function startGame() {
   $('lobby').hidden = true;
   $('game').hidden = false;
   running = true;
+  const vm = document.querySelector('meta[name=viewport]'); vm.content = vm.content; scrollTo(0, 0);
   if (!renderer) initScene();
   resize();
   newMatch();
@@ -462,14 +467,14 @@ function update(dt) {
     if (me.pos.y < MIN_ALT) { me.pitch = Math.max(me.pitch, 0.35); warn = 'Çok alçak!'; }
     if (me.pos.y > MAX_ALT) { me.pitch = Math.min(me.pitch, -0.25); warn = 'Azami irtifa'; }
 
-    me.boost = !!keys.T;
+    me.boost = !!(keys.T || tk.T);
     me.speed += ((me.boost ? 210 : 130) - me.speed) * Math.min(1, dt * 2);
     const f = fwdOf(me.yaw, me.pitch);
     me.pos.addScaledVector(f, me.speed * dt);
     me.pos.y = Math.max(me.pos.y, 8);
 
     me.cd -= dt;
-    if (keys.F && me.cd <= 0) {
+    if ((keys.F || tk.F) && me.cd <= 0) {
       me.cd = 0.14;
       const p = me.pos.clone().addScaledVector(f, 13);
       const v = f.clone().multiplyScalar(me.speed + 750);
@@ -563,40 +568,115 @@ function render() {
   }
 
   $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   ${solo ? ['Kolay', 'Orta', 'Zor'][lv] + ' bot' : 'Rakip'} ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses} / ${goal}`;
+  drawRadar();
   $('info').textContent = `İrtifa ${Math.round(me.pos.y)}  ·  Hız ${Math.round(me.speed)}  ·  Rakip ${dist} m`;
   renderer.render(scene, camera);
 }
 
-/* ================= Kontroller ================= */
-const joyEl = $('joy'), knob = $('knob');
-function joyMove(e) {
-  const r = joyEl.getBoundingClientRect();
-  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+/* ================= Radar ================= */
+const rc = $('radar').getContext('2d');
+function drawRadar() {
+  const S = 232, C = S / 2, R = C - 4, k = (R - 8) / (ARENA * 1.15);
+  rc.clearRect(0, 0, S, S);
+  rc.fillStyle = 'rgba(8,20,40,.55)';
+  rc.beginPath(); rc.arc(C, C, R, 0, Math.PI * 2); rc.fill();
+  rc.strokeStyle = 'rgba(255,255,255,.5)'; rc.lineWidth = 2; rc.stroke();
+  // oyun alanı sınırı
+  rc.strokeStyle = '#ffd166'; rc.setLineDash([8, 6]);
+  rc.beginPath(); rc.arc(C, C, ARENA * k, 0, Math.PI * 2); rc.stroke(); rc.setLineDash([]);
+  rc.fillStyle = 'rgba(255,255,255,.6)'; rc.font = 'bold 18px system-ui'; rc.textAlign = 'center';
+  rc.fillText('K', C, 22);
+  const pt = p => {
+    let x = p.x * k, y = p.z * k; const L = Math.hypot(x, y), M = R - 10;
+    if (L > M) { x *= M / L; y *= M / L; }
+    return [C + x, C + y];
+  };
+  if (opJet.visible) {
+    const [ox, oy] = pt(op.pos);
+    rc.fillStyle = '#ff4d6d'; rc.beginPath(); rc.arc(ox, oy, 8, 0, Math.PI * 2); rc.fill();
+  }
+  if (myJet.visible) {
+    const [mx, my] = pt(me.pos);
+    rc.save(); rc.translate(mx, my); rc.rotate(-me.yaw);
+    rc.fillStyle = '#06d6a0'; rc.beginPath();
+    rc.moveTo(0, -13); rc.lineTo(9, 10); rc.lineTo(0, 5); rc.lineTo(-9, 10); rc.closePath(); rc.fill();
+    rc.restore();
+  }
+}
+
+/* ================= Kontroller (çoklu dokunma) ================= */
+// Sol yarı: joystick (parmağın değdiği yerde açılır). Sağ: GAZ / ATEŞ. Aynı anda kullanılabilir.
+const joyEl = $('joy'), knob = $('knob'), tk = {}, held = new Map();
+const kbs = [...document.querySelectorAll('.kb')];
+function btnAt(x, y) {
+  for (const b of kbs) {
+    const r = b.getBoundingClientRect(), p = 18;
+    if (x >= r.left - p && x <= r.right + p && y >= r.top - p && y <= r.bottom + p) return b.dataset.k;
+  }
+  return null;
+}
+function syncBtns() {
+  tk.T = tk.F = false;
+  for (const k of held.values()) if (k) tk[k] = true;
+  for (const b of kbs) b.classList.toggle('on', !!tk[b.dataset.k]);
+}
+function joyAt(x, y) {
+  let dx = x - joy.cx, dy = y - joy.cy;
   const L = Math.hypot(dx, dy), M = 55;
   if (L > M) { dx *= M / L; dy *= M / L; }
   joy.x = dx / M; joy.y = dy / M;
   knob.style.transform = `translate(${dx}px,${dy}px)`;
 }
-function joyEnd(e) {
-  if (e.pointerId !== joy.id) return;
-  joy.id = null; joy.x = joy.y = 0; knob.style.transform = '';
+function joyRelease() {
+  joy.id = null; joy.x = joy.y = 0;
+  knob.style.transform = ''; joyEl.style.left = joyEl.style.top = joyEl.style.bottom = '';
 }
-joyEl.addEventListener('pointerdown', e => { e.preventDefault(); joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); joyMove(e); });
-joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id) joyMove(e); });
-joyEl.addEventListener('pointerup', joyEnd);
-joyEl.addEventListener('pointercancel', joyEnd);
+const gameEl = $('game');
+gameEl.addEventListener('touchstart', e => {
+  if (e.target.closest('#reset,#menu')) return;      // bu butonlar normal tıklansın
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const k = btnAt(t.clientX, t.clientY);
+    if (k) { held.set(t.identifier, k); continue; }
+    if (joy.id == null && t.clientX < innerWidth * 0.55) {
+      joy.id = t.identifier; joy.cx = t.clientX; joy.cy = t.clientY;
+      joyEl.style.left = (t.clientX - 70) + 'px'; joyEl.style.top = (t.clientY - 70) + 'px'; joyEl.style.bottom = 'auto';
+      joyAt(t.clientX, t.clientY);
+    }
+  }
+  syncBtns();
+}, { passive: false });
+gameEl.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === joy.id) joyAt(t.clientX, t.clientY);
+    else if (held.has(t.identifier)) held.set(t.identifier, btnAt(t.clientX, t.clientY));  // parmak butonlar arasında kaydırılabilir
+  }
+  syncBtns();
+}, { passive: false });
+function touchEnd(e) {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joy.id) joyRelease();
+    held.delete(t.identifier);
+  }
+  syncBtns();
+}
+gameEl.addEventListener('touchend', touchEnd);
+gameEl.addEventListener('touchcancel', touchEnd);
 
-document.querySelectorAll('.kb').forEach(b => {
-  const k = b.dataset.k;
-  const on = e => { e.preventDefault(); keys[k] = true; b.classList.add('on'); };
-  const off = e => { e.preventDefault(); keys[k] = false; b.classList.remove('on'); };
-  b.addEventListener('pointerdown', on);
-  b.addEventListener('pointerup', off);
-  b.addEventListener('pointercancel', off);
-  b.addEventListener('pointerleave', off);
-  b.addEventListener('contextmenu', e => e.preventDefault());
+// Fare ile (bilgisayar) GAZ/ATEŞ
+kbs.forEach(b => {
+  b.addEventListener('mousedown', () => { tk[b.dataset.k] = true; b.classList.add('on'); });
+  b.addEventListener('mouseup', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
+  b.addEventListener('mouseleave', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
 });
+
+// iPhone yakınlaştırma / kaydırma engeli
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (running || e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 document.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('scroll', () => { if (running) scrollTo(0, 0); });
 
 const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'U', w: 'U', ArrowDown: 'D', s: 'D', Shift: 'T', ' ': 'F', f: 'F' };
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });

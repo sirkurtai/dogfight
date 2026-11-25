@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{height:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{position:fixed;inset:0;width:100%;height:100%;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
 #lobby{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;padding:20px 16px;overflow:auto}
 #lobby h1{font-size:28px;margin-top:8px}
 #status{font-size:14px;opacity:.8;text-align:center}
@@ -27,7 +27,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #pad2{position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:12px}
 .kb{width:88px;height:88px;border-radius:50%;border:2px solid #3a5288;background:rgba(45,108,223,.35);color:#fff;font-size:16px;font-weight:700}
 .kb.fire{background:rgba(220,60,60,.4);border-color:#a13b3b}
-.kb:active,.kb.on{background:rgba(120,170,255,.6)}
+.kb.on{background:rgba(120,170,255,.6)}
 .opt{background:#24304d;padding:12px 0}
 .opt.sel{background:#2d6cdf;outline:2px solid #fff}
 #reset{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
@@ -285,14 +285,14 @@ function update(dt) {
   if (!over && solo && op.dead) { op.rt -= dt; if (op.rt <= 0) respawnBot(); }
   if (!over && noteT > 0) { noteT -= dt; if (noteT <= 0) msg = ''; }
   if (!over && !me.dead) {
-    const turn = (keys.L ? -1 : 0) + (keys.R ? 1 : 0);
+    const turn = (keys.L || tk.L ? -1 : 0) + (keys.R || tk.R ? 1 : 0);
     me.a += turn * 3 * dt;
-    const sp = keys.T ? 340 : 230;
+    const sp = (keys.T || tk.T) ? 340 : 230;
     me.x = wrapX(me.x + Math.cos(me.a) * sp * dt);
     me.y = wrapY(me.y + Math.sin(me.a) * sp * dt);
 
     me.cd -= dt;
-    if (keys.F && me.cd <= 0) {
+    if ((keys.F || tk.F) && me.cd <= 0) {
       me.cd = 0.28;
       bullets.push({
         x: me.x + Math.cos(me.a) * 22, y: me.y + Math.sin(me.a) * 22,
@@ -397,16 +397,45 @@ function resize() {
 addEventListener('resize', resize);
 
 /* ---------- kontroller ---------- */
-document.querySelectorAll('.kb').forEach(b => {
-  const k = b.dataset.k;
-  const on = e => { e.preventDefault(); keys[k] = true; };
-  const off = e => { e.preventDefault(); keys[k] = false; };
-  b.addEventListener('pointerdown', on);
-  b.addEventListener('pointerup', off);
-  b.addEventListener('pointercancel', off);
-  b.addEventListener('pointerleave', off);
-  b.addEventListener('contextmenu', e => e.preventDefault());
+// Çoklu dokunma: dönüş + gaz + ateş aynı anda
+const kbs = [...document.querySelectorAll('.kb')], held = new Map(), tk = {};
+function btnAt(x, y) {
+  for (const b of kbs) {
+    const r = b.getBoundingClientRect(), p = 14;
+    if (x >= r.left - p && x <= r.right + p && y >= r.top - p && y <= r.bottom + p) return b.dataset.k;
+  }
+  return null;
+}
+function syncBtns() {
+  tk.L = tk.R = tk.T = tk.F = false;
+  for (const k of held.values()) if (k) tk[k] = true;
+  for (const b of kbs) b.classList.toggle('on', !!tk[b.dataset.k]);
+}
+const gameEl = $('game');
+gameEl.addEventListener('touchstart', e => {
+  if (e.target.closest('#reset')) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) held.set(t.identifier, btnAt(t.clientX, t.clientY));
+  syncBtns();
+}, { passive: false });
+gameEl.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) if (held.has(t.identifier)) held.set(t.identifier, btnAt(t.clientX, t.clientY));
+  syncBtns();
+}, { passive: false });
+const tEnd = e => { for (const t of e.changedTouches) held.delete(t.identifier); syncBtns(); };
+gameEl.addEventListener('touchend', tEnd);
+gameEl.addEventListener('touchcancel', tEnd);
+kbs.forEach(b => {
+  b.addEventListener('mousedown', () => { tk[b.dataset.k] = true; b.classList.add('on'); });
+  b.addEventListener('mouseup', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
+  b.addEventListener('mouseleave', () => { tk[b.dataset.k] = false; b.classList.remove('on'); });
 });
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (running || e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+document.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('scroll', () => { if (running) scrollTo(0, 0); });
 
 const KEYMAP = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'T', w: 'T', ' ': 'F', f: 'F' };
 addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
