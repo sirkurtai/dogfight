@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Dogfight 3D</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#lobby{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 20px) 16px 20px;overflow:auto;z-index:5;background:#0b1020}
+#lobby h1{font-size:28px;margin-top:8px}
+#status{font-size:14px;opacity:.85;text-align:center;max-width:420px}
+.box{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px}
+.box p{font-size:14px;opacity:.9}
+.btn{background:#2d6cdf;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:600;width:100%}
+.btn:active{opacity:.7}
+.btn.small{width:auto;padding:12px 22px}
+input{width:100%;background:#111a30;color:#e6edf7;border:1px solid #2a3a60;border-radius:10px;padding:12px;font-size:16px;text-align:center;user-select:text;-webkit-user-select:text}
+#codeIn{font-size:26px;letter-spacing:6px;text-transform:uppercase;font-family:monospace}
+#roomCode{font-size:44px;font-weight:800;letter-spacing:10px;text-align:center;font-family:monospace}
+a{color:#8fb4ff}
+#game{position:fixed;inset:0}
+#game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:0;right:0;text-align:center;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
+#info{position:absolute;top:calc(env(safe-area-inset-top) + 32px);left:0;right:0;text-align:center;font-size:12px;font-weight:600;pointer-events:none;text-shadow:0 1px 3px #000;opacity:.9}
+#warn{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:18px;font-weight:800;color:#ffd166;pointer-events:none;text-shadow:0 1px 3px #000}
+#cross{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
+#cross:before{left:21px;top:4px;width:2px;height:36px}
+#cross:after{top:21px;left:4px;height:2px;width:36px}
+#tgt{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid #ff4d6d;border-radius:6px;pointer-events:none}
+#tgt span{position:absolute;top:48px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:#ff4d6d;white-space:nowrap;text-shadow:0 1px 2px #000}
+#arrow{position:absolute;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #ff4d6d;margin:-11px 0 0 -12px;pointer-events:none;filter:drop-shadow(0 0 2px #000)}
+#flash{position:absolute;inset:0;background:#ff0033;opacity:0;pointer-events:none;transition:opacity .25s}
+#joy{position:absolute;left:calc(env(safe-area-inset-left) + 18px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);touch-action:none}
+#knob{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none}
+#pad2{position:absolute;right:calc(env(safe-area-inset-right) + 14px);bottom:calc(env(safe-area-inset-bottom) + 16px);display:flex;gap:12px;align-items:flex-end}
+.kb{width:84px;height:84px;border-radius:50%;border:2px solid #3a5288;background:rgba(45,108,223,.45);color:#fff;font-size:15px;font-weight:800}
+.kb.fire{width:100px;height:100px;background:rgba(220,60,60,.5);border-color:#a13b3b}
+.kb.on{background:rgba(120,170,255,.75)}
+.kb.fire.on{background:rgba(255,110,110,.8)}
+#reset{position:absolute;top:58%;left:50%;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+
+<div id="lobby">
+  <h1>✈ Dogfight 3D</h1>
+  <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
+  <div class="box" id="choose">
+    <button class="btn" id="bHost">Oda Kur</button>
+    <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
+    <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
+    <button class="btn" id="bJoin">Katıl</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px;opacity:.75">Kontroller: sol joystick ile yön (yukarı = burun yukarı), sağda GAZ ve ATEŞ. Ortadaki + nişangâhtır.</p>
+    <p style="text-align:center"><a href="../">2D versiyona geç</a></p>
+  </div>
+  <div class="box" id="pHost" hidden>
+    <p>Oda kodu:</p>
+    <div id="roomCode">-----</div>
+    <p>Bu linki arkadaşına gönder:</p>
+    <input id="link" readonly>
+    <button class="btn" id="bShare">Linki Paylaş</button>
+    <button class="btn" id="bCopy" style="background:#3a4a70">Linki Kopyala</button>
+    <p style="text-align:center;opacity:.7">Rakip bekleniyor...</p>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <div id="cross"></div>
+  <div id="tgt" hidden><span></span></div>
+  <div id="arrow" hidden></div>
+  <div id="flash"></div>
+  <div id="hud"></div>
+  <div id="info"></div>
+  <div id="warn"></div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="pad2">
+    <button class="kb" data-k="T">GAZ</button>
+    <button class="kb fire" data-k="F">ATEŞ</button>
+  </div>
+  <button class="btn small" id="reset" hidden>Yeni tur</button>
+</div>
+
+<script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+/* ================= Ağ (PeerJS) ================= */
+let peer = null, conn = null, isHost = false, running = false;
+const PREFIX = 'sirkurtai-dogfight3d-';
+const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function status(t) { $('status').textContent = t; }
+function send(o) { if (conn && conn.open) conn.send(o); }
+
+function bindConn(c) {
+  if (conn && conn.open) { c.close(); return; }
+  conn = c;
+  c.on('open', () => { if (running) spawn(); else startGame(); });
+  c.on('data', recv);
+  c.on('close', () => { $('warn').textContent = 'Rakip ayrıldı'; conn = null; });
+  c.on('error', () => status('Bağlantı hatası, tekrar dene.'));
+}
+function peerErr(e) {
+  if (e.type === 'unavailable-id') { hostRoom(); return; }
+  if (e.type === 'peer-unavailable') status('Oda bulunamadı. Kod doğru mu, oda açık mı?');
+  else status('Sunucuya bağlanılamadı (' + e.type + '). İnterneti kontrol edip tekrar dene.');
+  $('choose').hidden = false;
+  $('pHost').hidden = true;
+}
+function hostRoom() {
+  isHost = true;
+  if (peer) peer.destroy();
+  let code = '';
+  for (let i = 0; i < 5; i++) code += ABC[Math.floor(Math.random() * ABC.length)];
+  $('choose').hidden = true;
+  $('pHost').hidden = false;
+  status('Oda hazırlanıyor...');
+  peer = new Peer(PREFIX + code);
+  peer.on('open', () => {
+    $('roomCode').textContent = code;
+    $('link').value = location.origin + location.pathname + '#' + code;
+    status('Oda hazır. Linki gönder ya da kodu söyle.');
+  });
+  peer.on('connection', bindConn);
+  peer.on('error', peerErr);
+}
+function joinRoom(code) {
+  code = code.trim().toUpperCase();
+  if (code.length !== 5) { status('Oda kodu 5 karakter olmalı.'); return; }
+  isHost = false;
+  $('choose').hidden = true;
+  status('Odaya bağlanılıyor: ' + code + ' ...');
+  if (peer) peer.destroy();
+  peer = new Peer();
+  peer.on('open', () => bindConn(peer.connect(PREFIX + code, { reliable: true, serialization: 'json' })));
+  peer.on('error', peerErr);
+}
+$('bHost').onclick = hostRoom;
+$('bJoin').onclick = () => joinRoom($('codeIn').value);
+$('bCopy').onclick = () => {
+  const t = $('link'); t.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+    () => { $('bCopy').textContent = 'Kopyalandı ✓'; },
+    () => { document.execCommand('copy'); $('bCopy').textContent = 'Kopyalandı ✓'; });
+};
+$('bShare').onclick = () => {
+  const url = $('link').value;
+  if (navigator.share) navigator.share({ title: 'Dogfight 3D', text: 'Dogfight 3D oynayalım! Oda kodu: ' + $('roomCode').textContent, url }).catch(() => {});
+  else $('bCopy').click();
+};
+addEventListener('beforeunload', () => { if (peer) peer.destroy(); });
+
+/* ================= 3D sahne ================= */
+let renderer, scene, camera, myJet, opJet, myFlame, opFlame;
+const bulletGeo = new THREE.SphereGeometry(1.1, 6, 4);
+const myBulletMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
+const opBulletMat = new THREE.MeshBasicMaterial({ color: 0xff5533 });
+const ARENA = 1400, MIN_ALT = 25, MAX_ALT = 900, HIT_R = 11;
+
+function makeJet(color) {
+  const g = new THREE.Group();
+  const body = new THREE.MeshLambertMaterial({ color });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x2b3138 });
+  const glass = new THREE.MeshLambertMaterial({ color: 0x66ccff, emissive: 0x113344 });
+  const wingMat = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide });
+
+  const fus = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 14, 10), body);
+  fus.rotation.x = Math.PI / 2; g.add(fus);
+  const noseGeo = new THREE.ConeGeometry(1.2, 5, 10); noseGeo.rotateX(-Math.PI / 2);
+  const nose = new THREE.Mesh(noseGeo, body); nose.position.z = -9.5; g.add(nose);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), glass);
+  canopy.scale.set(1, 0.8, 2.6); canopy.position.set(0, 1.2, -3.5); g.add(canopy);
+  const exh = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.1, 1.2, 10), dark);
+  exh.rotation.x = Math.PI / 2; exh.position.z = 7.4; g.add(exh);
+
+  const tri = (pts) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    geo.computeVertexNormals();
+    return new THREE.Mesh(geo, wingMat);
+  };
+  // ana kanatlar (delta)
+  g.add(tri([1, 0, -2, 9.5, 0, 4.5, 1, 0, 5.5, -1, 0, -2, -1, 0, 5.5, -9.5, 0, 4.5]));
+  // yatay stabilizeler
+  g.add(tri([1, 0, 5, 4.5, 0, 7.8, 1, 0, 7.8, -1, 0, 5, -1, 0, 7.8, -4.5, 0, 7.8]));
+  // dikey kuyruk
+  g.add(tri([0, 1, 2.5, 0, 6.5, 7.5, 0, 1, 7.5]));
+
+  const flameGeo = new THREE.ConeGeometry(1, 5, 8); flameGeo.rotateX(Math.PI / 2);
+  const flame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: 0xffa13d, transparent: true, opacity: 0.85 }));
+  flame.position.z = 10.2; g.add(flame);
+  g.userData.flame = flame;
+  g.rotation.order = 'YXZ';
+  return g;
+}
+
+function rnd(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  $('game').prepend(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8ec5ff);
+  scene.fog = new THREE.Fog(0x8ec5ff, 400, 2200);
+  camera = new THREE.PerspectiveCamera(70, 1, 1, 5000);
+
+  scene.add(new THREE.HemisphereLight(0xdcefff, 0x4a6a3a, 0.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(300, 800, 200); scene.add(sun);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), new THREE.MeshLambertMaterial({ color: 0x5f8f4e }));
+  ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  const grid = new THREE.GridHelper(9000, 90, 0x4b7a3c, 0x4b7a3c); grid.position.y = 0.5; scene.add(grid);
+
+  const r = rnd(12345);
+  const rock = new THREE.MeshLambertMaterial({ color: 0x7d8a7a, flatShading: true });
+  const snow = new THREE.MeshLambertMaterial({ color: 0xf2f5f7, flatShading: true });
+  for (let i = 0; i < 70; i++) {
+    const h = 60 + r() * 220, w = h * (0.7 + r() * 0.6);
+    const m = new THREE.Mesh(new THREE.ConeGeometry(w, h, 6), rock);
+    const a = r() * Math.PI * 2, d = 200 + r() * 2600;
+    m.position.set(Math.cos(a) * d, h / 2, Math.sin(a) * d); scene.add(m);
+    if (h > 180) {
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(w * 0.3, h * 0.3, 6), snow);
+      cap.position.set(m.position.x, h * 0.85 + 1, m.position.z); scene.add(cap);
+    }
+  }
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+  for (let i = 0; i < 40; i++) {
+    const c = new THREE.Mesh(new THREE.SphereGeometry(30 + r() * 40, 8, 6), cloudMat);
+    c.scale.set(2.5, 0.6, 1.5);
+    c.position.set((r() - 0.5) * 3600, 350 + r() * 450, (r() - 0.5) * 3600); scene.add(c);
+  }
+
+  myJet = makeJet(0x8fa3b8); scene.add(myJet);
+  opJet = makeJet(0xd64550); scene.add(opJet);
+  resize();
+}
+
+function resize() {
+  if (!renderer) return;
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = camera.aspect < 1 ? 85 : 70;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+/* ================= Oyun durumu ================= */
+let me, op, bullets = [], opBullets = [], fx = [], wins = 0, losses = 0, over = false;
+let sendT = 0;
+const keys = {}, joy = { x: 0, y: 0, id: null };
+
+function startGame() {
+  $('lobby').hidden = true;
+  $('game').hidden = false;
+  running = true;
+  if (!renderer) initScene();
+  resize();
+  spawn();
+}
+
+function spawn() {
+  const z = isHost ? 700 : -700;
+  me = { pos: new THREE.Vector3(isHost ? 40 : -40, 220, z), yaw: isHost ? 0 : Math.PI, pitch: 0, roll: 0, hp: 3, cd: 0, speed: 130, boost: false };
+  op = { pos: new THREE.Vector3(isHost ? -40 : 40, 220, -z), tp: null, yaw: isHost ? Math.PI : 0, pitch: 0, roll: 0, ty: 0, tpi: 0, tr: 0, hp: 3, boost: false };
+  op.tp = op.pos.clone(); op.ty = op.yaw;
+  for (const b of bullets.concat(opBullets)) scene.remove(b.m);
+  bullets = []; opBullets = [];
+  over = false;
+  myJet.visible = opJet.visible = true;
+  camera.position.copy(me.pos).add(new THREE.Vector3(0, 10, isHost ? 45 : -45));
+  $('warn').textContent = '';
+  $('reset').hidden = true;
+}
+
+function fwdOf(yaw, pitch) {
+  return new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+}
+
+function explode(pos) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff8a1f, transparent: true, opacity: 1 }));
+  m.position.copy(pos); scene.add(m);
+  fx.push({ m, t: 0 });
+}
+
+function flashHit() {
+  $('flash').style.opacity = 0.45;
+  setTimeout(() => $('flash').style.opacity = 0, 120);
+}
+
+function endRound(text) {
+  $('warn').textContent = text;
+  $('reset').hidden = false;
+}
+
+function addBullet(list, mat, p, v) {
+  const m = new THREE.Mesh(bulletGeo, mat);
+  m.position.set(p[0], p[1], p[2]); scene.add(m);
+  list.push({ m, v: new THREE.Vector3(v[0], v[1], v[2]), t: 1.6 });
+}
+
+function recv(m) {
+  if (!me) return;
+  if (m.t === 's') {
+    op.tp.set(m.p[0], m.p[1], m.p[2]);
+    op.ty = m.r[0]; op.tpi = m.r[1]; op.tr = m.r[2]; op.boost = m.b;
+  } else if (m.t === 'b') {
+    addBullet(opBullets, opBulletMat, m.p, m.v);
+  } else if (m.t === 'hit') {
+    if (!over) {
+      me.hp--; flashHit();
+      if (me.hp <= 0) {
+        over = true; losses++;
+        explode(me.pos); myJet.visible = false;
+        send({ t: 'end' });
+        endRound('Vuruldun!');
+      }
+    }
+  } else if (m.t === 'end') {
+    if (!over) { over = true; wins++; op.hp = 0; explode(op.pos); opJet.visible = false; endRound('Kazandın!'); }
+  } else if (m.t === 'reset') {
+    spawn();
+  }
+}
+
+function segDist(a, b, p) { // a-b doğru parçasının p noktasına en yakın mesafesi
+  const ab = b.clone().sub(a), t = clamp(p.clone().sub(a).dot(ab) / (ab.lengthSq() || 1), 0, 1);
+  return a.clone().addScaledVector(ab, t).distanceTo(p);
+}
+
+function update(dt) {
+  if (!me) return;
+  let warn = '';
+  if (!over) {
+    const jx = clamp(joy.x + (keys.R ? 1 : 0) - (keys.L ? 1 : 0), -1, 1);
+    const jy = clamp(joy.y + (keys.D ? 1 : 0) - (keys.U ? 1 : 0), -1, 1);
+    me.yaw -= jx * 1.35 * dt;
+    me.pitch = clamp(me.pitch - jy * 1.1 * dt, -1.15, 1.15);
+    me.roll += (-jx * 0.85 - me.roll) * Math.min(1, dt * 5);
+
+    const hd = Math.hypot(me.pos.x, me.pos.z);
+    if (hd > ARENA) {
+      const want = Math.atan2(me.pos.x, me.pos.z);
+      me.yaw += clamp(wrapA(want - me.yaw), -1.6 * dt, 1.6 * dt);
+      warn = 'Alan sınırı! Geri dönülüyor';
+    }
+    if (me.pos.y < MIN_ALT) { me.pitch = Math.max(me.pitch, 0.35); warn = 'Çok alçak!'; }
+    if (me.pos.y > MAX_ALT) { me.pitch = Math.min(me.pitch, -0.25); warn = 'Azami irtifa'; }
+
+    me.boost = !!keys.T;
+    me.speed += ((me.boost ? 210 : 130) - me.speed) * Math.min(1, dt * 2);
+    const f = fwdOf(me.yaw, me.pitch);
+    me.pos.addScaledVector(f, me.speed * dt);
+    me.pos.y = Math.max(me.pos.y, 8);
+
+    me.cd -= dt;
+    if (keys.F && me.cd <= 0) {
+      me.cd = 0.14;
+      const p = me.pos.clone().addScaledVector(f, 13);
+      const v = f.clone().multiplyScalar(me.speed + 750);
+      addBullet(bullets, myBulletMat, [p.x, p.y, p.z], [v.x, v.y, v.z]);
+      send({ t: 'b', p: [p.x, p.y, p.z], v: [v.x, v.y, v.z] });
+    }
+  }
+
+  // rakibi yumuşak takip
+  const k = Math.min(1, dt * 12);
+  op.pos.lerp(op.tp, k);
+  op.yaw += wrapA(op.ty - op.yaw) * k;
+  op.pitch += (op.tpi - op.pitch) * k;
+  op.roll += (op.tr - op.roll) * k;
+
+  // mermiler
+  for (const b of bullets) {
+    const prev = b.m.position.clone();
+    b.m.position.addScaledVector(b.v, dt); b.t -= dt;
+    if (!over && op.hp > 0 && opJet.visible && segDist(prev, b.m.position, op.pos) < HIT_R) {
+      b.t = 0; op.hp--; send({ t: 'hit' });
+      explode(b.m.position.clone()); fx[fx.length - 1].small = true;
+    }
+  }
+  for (const b of opBullets) { b.m.position.addScaledVector(b.v, dt); b.t -= dt; }
+  for (const list of [bullets, opBullets]) {
+    for (let i = list.length - 1; i >= 0; i--) if (list[i].t <= 0) { scene.remove(list[i].m); list.splice(i, 1); }
+  }
+
+  // patlama efektleri
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const e = fx[i]; e.t += dt;
+    const s = (e.small ? 6 : 28) * e.t / 0.8 + 1;
+    e.m.scale.setScalar(s); e.m.material.opacity = Math.max(0, 1 - e.t / 0.8);
+    if (e.t > 0.8) { scene.remove(e.m); fx.splice(i, 1); }
+  }
+
+  sendT += dt;
+  if (sendT > 0.05) {
+    sendT = 0;
+    send({ t: 's', p: [me.pos.x, me.pos.y, me.pos.z], r: [me.yaw, me.pitch, me.roll], b: me.boost });
+  }
+  $('warn').textContent = over ? $('warn').textContent : warn;
+}
+
+function render() {
+  myJet.position.copy(me.pos); myJet.rotation.set(me.pitch, me.yaw, me.roll);
+  opJet.position.copy(op.pos); opJet.rotation.set(op.pitch, op.yaw, op.roll);
+  myJet.userData.flame.scale.set(1, 1, me.boost ? 1.6 : 0.6);
+  opJet.userData.flame.scale.set(1, 1, op.boost ? 1.6 : 0.6);
+
+  const f = fwdOf(me.yaw, me.pitch);
+  const camT = me.pos.clone().addScaledVector(f, -42); camT.y += 11;
+  camera.position.lerp(camT, 1 - Math.exp(-(1 / 60) * 9));
+  camera.lookAt(me.pos.clone().addScaledVector(f, 120));
+  camera.updateMatrixWorld();
+
+  // nişangâh (+): uçağın burnunun 400 birim önü
+  const aim = me.pos.clone().addScaledVector(f, 400).project(camera);
+  const cx = (aim.x + 1) / 2 * innerWidth, cy = (1 - aim.y) / 2 * innerHeight;
+  $('cross').style.left = cx + 'px'; $('cross').style.top = cy + 'px';
+  $('cross').hidden = over;
+
+  // rakip göstergesi
+  const dist = Math.round(me.pos.distanceTo(op.pos));
+  const sp = op.pos.clone().project(camera);
+  const onScreen = sp.z < 1 && Math.abs(sp.x) < 0.95 && Math.abs(sp.y) < 0.95;
+  const tgt = $('tgt'), arr = $('arrow');
+  if (!opJet.visible) { tgt.hidden = arr.hidden = true; }
+  else if (onScreen) {
+    tgt.hidden = false; arr.hidden = true;
+    tgt.style.left = (sp.x + 1) / 2 * innerWidth + 'px';
+    tgt.style.top = (1 - sp.y) / 2 * innerHeight + 'px';
+    tgt.firstChild.textContent = dist + ' m';
+  } else {
+    tgt.hidden = true; arr.hidden = false;
+    const c = op.pos.clone().applyMatrix4(camera.matrixWorldInverse);
+    const ang = Math.atan2(c.y, c.x);
+    const R = Math.min(innerWidth, innerHeight) * 0.42;
+    arr.style.left = innerWidth / 2 + Math.cos(ang) * R + 'px';
+    arr.style.top = innerHeight / 2 - Math.sin(ang) * R + 'px';
+    arr.style.transform = 'rotate(' + (Math.PI / 2 - ang) + 'rad)';
+  }
+
+  $('hud').textContent = `Sen ${'♥'.repeat(Math.max(0, me.hp)) || '✖'}   Rakip ${'♥'.repeat(Math.max(0, op.hp)) || '✖'}   Skor ${wins}-${losses}`;
+  $('info').textContent = `İrtifa ${Math.round(me.pos.y)}  ·  Hız ${Math.round(me.speed)}  ·  Rakip ${dist} m`;
+  renderer.render(scene, camera);
+}
+
+/* ================= Kontroller ================= */
+const joyEl = $('joy'), knob = $('knob');
+function joyMove(e) {
+  const r = joyEl.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const L = Math.hypot(dx, dy), M = 55;
+  if (L > M) { dx *= M / L; dy *= M / L; }
+  joy.x = dx / M; joy.y = dy / M;
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+}
+function joyEnd(e) {
+  if (e.pointerId !== joy.id) return;
+  joy.id = null; joy.x = joy.y = 0; knob.style.transform = '';
+}
+joyEl.addEventListener('pointerdown', e => { e.preventDefault(); joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); joyMove(e); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id) joyMove(e); });
+joyEl.addEventListener('pointerup', joyEnd);
+joyEl.addEventListener('pointercancel', joyEnd);
+
+document.querySelectorAll('.kb').forEach(b => {
+  const k = b.dataset.k;
+  const on = e => { e.preventDefault(); keys[k] = true; b.classList.add('on'); };
+  const off = e => { e.preventDefault(); keys[k] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', on);
+  b.addEventListener('pointerup', off);
+  b.addEventListener('pointercancel', off);
+  b.addEventListener('pointerleave', off);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+const KEYMAP = { ArrowLeft: 'L', a: 'L', ArrowRight: 'R', d: 'R', ArrowUp: 'U', w: 'U', ArrowDown: 'D', s: 'D', Shift: 'T', ' ': 'F', f: 'F' };
+addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; e.preventDefault(); } });
+addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$('reset').onclick = () => { send({ t: 'reset' }); spawn(); };
+
+/* ================= Döngü ================= */
+let lastT = performance.now();
+function frame(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  if (running && me) { update(dt); render(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ================= Başlangıç ================= */
+if (typeof Peer === 'undefined' || typeof THREE === 'undefined') {
+  status('Gerekli kütüphaneler yüklenemedi. İnterneti kontrol edip sayfayı yenile.');
+} else if (/^#[A-Za-z0-9]{5}$/.test(location.hash)) {
+  const code = location.hash.slice(1);
+  history.replaceState(null, '', location.pathname);
+  $('codeIn').value = code.toUpperCase();
+  joinRoom(code);
+}
+</script>
+</body>
+</html>

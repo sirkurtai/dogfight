@@ -9,3 +9,5 @@ Oyna: https://sirkurtai.github.io/dogfight/
 3. Arkadaşın linke tıklayınca oyun başlar.
 
 Bağlantı eşleştirmesi için PeerJS ücretsiz sunucusu kullanılır; oyun verisi telefonlar arasında doğrudan (WebRTC) akar.
+
+3D versiyon: https://sirkurtai.github.io/dogfight/3d/
