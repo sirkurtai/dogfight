@@ -13,6 +13,9 @@ html,body{height:100%;background:#0b1020;color:#e6edf7;font-family:system-ui,-ap
 #status{font-size:14px;opacity:.8;text-align:center}
 .box{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px}
 .box p{font-size:14px;opacity:.9}
+#roomCode{font-size:44px;font-weight:800;letter-spacing:10px;text-align:center;font-family:monospace}
+input{width:100%;background:#111a30;color:#e6edf7;border:1px solid #2a3a60;border-radius:10px;padding:12px;font-size:16px;text-align:center;user-select:text;-webkit-user-select:text}
+#codeIn{font-size:26px;letter-spacing:6px;text-transform:uppercase;font-family:monospace}
 textarea{width:100%;height:90px;background:#111a30;color:#e6edf7;border:1px solid #2a3a60;border-radius:10px;padding:8px;font-size:12px;font-family:monospace;user-select:text;-webkit-user-select:text}
 .btn{background:#2d6cdf;color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:600;width:100%}
 .btn:active{opacity:.7}
@@ -32,28 +35,21 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 <div id="lobby">
   <h1>✈ Dogfight</h1>
-  <p id="status">İki telefonu aynı Wi-Fi'ye bağla, birinde oda kur, diğerinde odaya katıl.</p>
+  <p id="status">Oda kur, çıkan linki arkadaşına gönder. Linke tıklayınca oyun başlar.</p>
   <div class="box" id="choose">
     <button class="btn" id="bHost">Oda Kur</button>
-    <button class="btn" id="bJoin">Odaya Katıl</button>
+    <p style="text-align:center;margin-top:8px">veya oda koduyla katıl:</p>
+    <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off">
+    <button class="btn" id="bJoin">Katıl</button>
   </div>
-
   <div class="box" id="pHost" hidden>
-    <p>1) Bu oda kodunu kopyala, diğer telefona gönder:</p>
-    <textarea id="hostOut" readonly></textarea>
-    <button class="btn" id="copy1">Kopyala</button>
-    <p>2) Diğer telefonun verdiği cevap kodunu buraya yapıştır:</p>
-    <textarea id="hostIn" placeholder="Cevap kodu"></textarea>
-    <button class="btn" id="bConnectHost">Bağlan</button>
-  </div>
-
-  <div class="box" id="pJoin" hidden>
-    <p>1) Diğer telefonun verdiği oda kodunu buraya yapıştır:</p>
-    <textarea id="joinIn" placeholder="Oda kodu"></textarea>
-    <button class="btn" id="bMakeAnswer">Cevap kodu üret</button>
-    <p>2) Bu cevap kodunu diğer telefona gönder:</p>
-    <textarea id="guestOut" readonly></textarea>
-    <button class="btn" id="copy2">Kopyala</button>
+    <p>Oda kodu:</p>
+    <div id="roomCode">-----</div>
+    <p>Bu linki arkadaşına gönder:</p>
+    <input id="link" readonly>
+    <button class="btn" id="bShare">Linki Paylaş</button>
+    <button class="btn" id="bCopy" style="background:#3a4a70">Linki Kopyala</button>
+    <p id="wait" style="text-align:center;opacity:.7">Rakip bekleniyor...</p>
   </div>
 </div>
 
@@ -71,96 +67,91 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   <button class="btn small" id="reset" hidden>Yeni tur</button>
 </div>
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const cfg = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const W = 1000, H = 640;
 const cv = $('c'), ctx = cv.getContext('2d');
-let pc = null, dc = null, isHost = false, running = false;
+let peer = null, conn = null, isHost = false, running = false;
 let me, op, bullets = [], wins = 0, losses = 0, over = false, msg = '';
 let sendT = 0;
 const keys = {};
 let sc = 1;
+const PREFIX = 'sirkurtai-dogfight-';
+const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-/* ---------- kod kodlama ---------- */
-const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
-const dec = s => JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
+function status(t) { $('status').textContent = t; }
+function send(o) { if (conn && conn.open) conn.send(o); }
 
-function waitIce(p) {
-  return new Promise(res => {
-    if (p.iceGatheringState === 'complete') return res();
-    const f = () => { if (p.iceGatheringState === 'complete') { p.removeEventListener('icegatheringstatechange', f); res(); } };
-    p.addEventListener('icegatheringstatechange', f);
-    setTimeout(res, 5000);
-  });
+function bindConn(c) {
+  if (conn && conn.open) { c.close(); return; }   // oda dolu
+  conn = c;
+  c.on('open', () => { if (running) spawn(); else startGame(); });
+  c.on('data', recv);
+  c.on('close', () => { $('hud').textContent = 'Rakip ayrıldı'; conn = null; });
+  c.on('error', () => status('Bağlantı hatası, tekrar dene.'));
 }
 
-function newPC() {
-  pc = new RTCPeerConnection(cfg);
-  pc.onconnectionstatechange = () => {
-    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState) && running) {
-      $('hud').textContent = 'Bağlantı koptu';
-    }
-  };
+function peerErr(e) {
+  if (e.type === 'unavailable-id') { hostRoom(); return; }           // kod çakıştı, yenisini üret
+  if (e.type === 'peer-unavailable') status('Oda bulunamadı. Kod doğru mu, oda açık mı?');
+  else status('Sunucuya bağlanılamadı (' + e.type + '). İnterneti kontrol edip tekrar dene.');
+  $('choose').hidden = false;
+  $('pHost').hidden = true;
 }
 
-function bindDC(c) {
-  dc = c;
-  c.onopen = startGame;
-  c.onmessage = e => recv(JSON.parse(e.data));
-  c.onclose = () => { $('hud').textContent = 'Bağlantı kesildi'; };
-}
-
-function send(o) { if (dc && dc.readyState === 'open') dc.send(JSON.stringify(o)); }
-
-function copy(id) {
-  const t = $(id);
-  t.select();
-  if (navigator.clipboard) navigator.clipboard.writeText(t.value).catch(() => document.execCommand('copy'));
-  else document.execCommand('copy');
-}
-
-/* ---------- lobi ---------- */
-$('bHost').onclick = async () => {
+function hostRoom() {
   isHost = true;
+  if (peer) peer.destroy();
+  let code = '';
+  for (let i = 0; i < 5; i++) code += ABC[Math.floor(Math.random() * ABC.length)];
   $('choose').hidden = true;
   $('pHost').hidden = false;
-  newPC();
-  bindDC(pc.createDataChannel('g'));
-  const o = await pc.createOffer();
-  await pc.setLocalDescription(o);
-  await waitIce(pc);
-  $('hostOut').value = enc(pc.localDescription);
-};
+  status('Oda hazırlanıyor...');
+  peer = new Peer(PREFIX + code);
+  peer.on('open', () => {
+    $('roomCode').textContent = code;
+    $('link').value = location.origin + location.pathname + '#' + code;
+    status('Oda hazır. Linki gönder ya da kodu söyle.');
+  });
+  peer.on('connection', bindConn);
+  peer.on('error', peerErr);
+}
 
-$('bConnectHost').onclick = async () => {
-  try {
-    await pc.setRemoteDescription(dec($('hostIn').value));
-    $('status').textContent = 'Bağlanılıyor...';
-  } catch (e) { alert('Cevap kodu hatalı'); }
-};
-
-$('bJoin').onclick = () => {
+function joinRoom(code) {
+  code = code.trim().toUpperCase();
+  if (code.length !== 5) { status('Oda kodu 5 karakter olmalı.'); return; }
   isHost = false;
   $('choose').hidden = true;
-  $('pJoin').hidden = false;
+  status('Odaya bağlanılıyor: ' + code + ' ...');
+  if (peer) peer.destroy();
+  peer = new Peer();
+  peer.on('open', () => bindConn(peer.connect(PREFIX + code, { reliable: true, serialization: 'json' })));
+  peer.on('error', peerErr);
+}
+
+$('bHost').onclick = hostRoom;
+$('bJoin').onclick = () => joinRoom($('codeIn').value);
+$('bCopy').onclick = () => {
+  const t = $('link'); t.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+    () => { $('bCopy').textContent = 'Kopyalandı ✓'; },
+    () => { document.execCommand('copy'); $('bCopy').textContent = 'Kopyalandı ✓'; });
+};
+$('bShare').onclick = () => {
+  const url = $('link').value;
+  if (navigator.share) navigator.share({ title: 'Dogfight', text: 'Dogfight oynayalım! Oda kodu: ' + $('roomCode').textContent, url }).catch(() => {});
+  else $('bCopy').click();
 };
 
-$('bMakeAnswer').onclick = async () => {
-  newPC();
-  pc.ondatachannel = e => bindDC(e.channel);
-  try {
-    await pc.setRemoteDescription(dec($('joinIn').value));
-  } catch (e) { alert('Oda kodu hatalı'); return; }
-  const a = await pc.createAnswer();
-  await pc.setLocalDescription(a);
-  await waitIce(pc);
-  $('guestOut').value = enc(pc.localDescription);
-  $('status').textContent = 'Cevap kodunu diğer telefona gönder, bağlantı kurulunca oyun başlayacak.';
-};
-
-$('copy1').onclick = () => copy('hostOut');
-$('copy2').onclick = () => copy('guestOut');
+if (typeof Peer === 'undefined') {
+  status('Bağlantı kütüphanesi yüklenemedi. İnterneti kontrol edip sayfayı yenile.');
+} else if (/^#[A-Za-z0-9]{5}$/.test(location.hash)) {
+  const code = location.hash.slice(1);
+  history.replaceState(null, '', location.pathname);
+  $('codeIn').value = code.toUpperCase();
+  joinRoom(code);
+}
 
 /* ---------- oyun ---------- */
 function startGame() {
@@ -334,6 +325,7 @@ addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { keys[k] = t
 addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
 
 $('reset').onclick = () => { send({ t: 'reset' }); spawn(); };
+addEventListener('beforeunload', () => { if (peer) peer.destroy(); });
 
 /* ---------- döngü ---------- */
 let lastT = performance.now();
