@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Batak</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;font-family:system-ui,-apple-system,sans-serif;color:#f3f6f4;background:#0d4d2e;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+body{background:radial-gradient(ellipse at center,#18774a 0%,#0e5634 60%,#093d25 100%)}
+button{font-family:inherit}
+.btn{background:#f2c14e;color:#1b1b1b;border:0;border-radius:12px;padding:13px 16px;font-size:16px;font-weight:800;width:100%}
+.btn.sec{background:#2c6e4c;color:#fff}
+.btn.dark{background:#1f3b2d;color:#fff}
+.btn:active{opacity:.7}
+input,select{width:100%;background:#0b3320;color:#fff;border:1px solid #3c8a62;border-radius:10px;padding:12px;font-size:16px;-webkit-user-select:text;user-select:text}
+#lobby{position:fixed;inset:0;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 18px) 16px 24px}
+#lobby h1{font-size:30px}
+.box{width:100%;max-width:420px;display:flex;flex-direction:column;gap:9px}
+.row{display:flex;gap:8px}
+.opt{background:#1f3b2d;color:#fff;padding:11px 0;font-size:15px}
+.opt.sel{background:#f2c14e;color:#1b1b1b}
+#status{font-size:14px;opacity:.9;text-align:center;max-width:420px}
+#roomCode{font-size:42px;font-weight:900;letter-spacing:10px;text-align:center;font-family:monospace}
+.seat{display:flex;justify-content:space-between;background:#0b3320;border-radius:10px;padding:10px 12px;font-size:15px}
+.seat b{opacity:.75;font-weight:600}
+small.hint{font-size:12px;opacity:.75;text-align:center}
+
+#game{position:fixed;inset:0}
+#topbar{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:8px;right:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px;font-weight:700}
+#topbar .pill{background:rgba(0,0,0,.3);border-radius:20px;padding:6px 10px;white-space:nowrap}
+#trumpPill{font-size:15px}
+.plate{position:absolute;background:rgba(0,0,0,.35);border-radius:12px;padding:6px 9px;font-size:13px;text-align:center;min-width:86px;border:2px solid transparent}
+.plate.turn{border-color:#f2c14e;box-shadow:0 0 10px #f2c14e}
+.plate .nm{font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plate .st{opacity:.9;font-size:12px}
+#p1{right:6px;top:42%}
+#p2{left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 44px)}
+#p3{left:6px;top:42%}
+#p0{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--hh,120px) + 8px)}
+#trick{position:absolute;left:50%;top:46%;width:180px;height:190px;transform:translate(-50%,-50%)}
+#trick .card{position:absolute;left:50%;top:50%}
+#msg{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:7px 14px;border-radius:12px;font-size:14px;font-weight:800;white-space:nowrap;pointer-events:none}
+#hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 8px);height:var(--hh,120px)}
+#hand .card{position:absolute;bottom:0;transition:transform .12s}
+#hand .card.sel{transform:translateY(-22px)}
+#hand .card.no{filter:brightness(.55)}
+.card{width:var(--cw,54px);height:calc(var(--cw,54px)*1.42);border-radius:7px;background:#fdfdfb;color:#151515;box-shadow:0 2px 5px rgba(0,0,0,.45);font-weight:900;overflow:hidden}
+.card.red{color:#d0142c}
+.card .c1{position:absolute;left:4px;top:3px;font-size:calc(var(--cw,54px)*.3);line-height:1;text-align:center}
+.card .c1 i{display:block;font-style:normal;font-size:calc(var(--cw,54px)*.27)}
+.card .c2{position:absolute;right:5px;bottom:2px;font-size:calc(var(--cw,54px)*.55);line-height:1}
+#panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,380px);background:rgba(7,40,24,.95);border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:5}
+#panel h3{text-align:center;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.grid button{padding:12px 0;font-size:17px;border-radius:10px;border:0;background:#2c6e4c;color:#fff;font-weight:800}
+.grid button.pass{grid-column:span 2;background:#7a2b2b}
+.suits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.suits button{font-size:34px;padding:8px 0;border-radius:12px;border:0;background:#fdfdfb}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:5px 3px;text-align:center;border-bottom:1px solid rgba(255,255,255,.15)}
+th{font-size:12px}
+#ovl{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:6;display:flex;align-items:center;justify-content:center}
+#ovl .in{width:min(94vw,420px);max-height:80vh;overflow:auto;background:#0b3320;border:2px solid #f2c14e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+</style>
+</head>
+<body>
+
+<div id="lobby">
+  <h1>♠ Batak ♥</h1>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 1 · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
+
+  <div class="box" id="choose">
+    <input id="name" maxlength="14" placeholder="Adın">
+    <p style="text-align:center;font-size:14px">Oyun türü</p>
+    <div class="row">
+      <button class="btn opt sel" data-mode="koz">Koz Maça</button>
+      <button class="btn opt" data-mode="ihale">İhaleli</button>
+    </div>
+    <p style="text-align:center;font-size:14px">Kaç el oynansın?</p>
+    <div class="row">
+      <button class="btn opt" data-hands="4">4</button>
+      <button class="btn opt sel" data-hands="8">8</button>
+      <button class="btn opt" data-hands="12">12</button>
+      <button class="btn opt" data-hands="16">16</button>
+    </div>
+    <button class="btn" id="bHost">Oda Kur (arkadaşlarla)</button>
+    <button class="btn sec" id="bSolo">3 bota karşı hemen oyna</button>
+    <p style="text-align:center;margin-top:6px;font-size:14px">veya oda koduyla katıl:</p>
+    <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace">
+    <button class="btn dark" id="bJoin">Katıl</button>
+    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: en yüksek ihaleyi veren kozu seçer ve ilk eli açar.</small>
+    <p style="text-align:center;font-size:13px"><a href="../" style="color:#f2c14e">✈ Dogfight oyununa dön</a></p>
+  </div>
+
+  <div class="box" id="pHost" hidden>
+    <p>Oda kodu:</p>
+    <div id="roomCode">-----</div>
+    <input id="link" readonly>
+    <div class="row">
+      <button class="btn" id="bShare">Linki Paylaş</button>
+      <button class="btn dark" id="bCopy">Kopyala</button>
+    </div>
+    <p style="margin-top:6px">Masa:</p>
+    <div id="seats"></div>
+    <button class="btn" id="bStart">Oyunu Başlat (boş koltuklara bot)</button>
+  </div>
+
+  <div class="box" id="pGuest" hidden>
+    <p style="text-align:center">Masa:</p>
+    <div id="gseats"></div>
+    <p style="text-align:center;opacity:.8">Oda sahibinin oyunu başlatması bekleniyor...</p>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <div id="topbar">
+    <span class="pill" id="modePill"></span>
+    <span class="pill" id="trumpPill"></span>
+    <span class="pill" id="handPill"></span>
+    <button class="pill" id="bScore" style="border:0;color:#fff;font-weight:800">Puanlar</button>
+  </div>
+  <div class="plate" id="p2"><div class="nm"></div><div class="st"></div></div>
+  <div class="plate" id="p1"><div class="nm"></div><div class="st"></div></div>
+  <div class="plate" id="p3"><div class="nm"></div><div class="st"></div></div>
+  <div class="plate" id="p0"><div class="nm"></div><div class="st"></div></div>
+  <div id="trick"></div>
+  <div id="msg" hidden></div>
+  <div id="hand"></div>
+  <div id="panel" hidden></div>
+  <div id="ovl" hidden><div class="in" id="ovlIn"></div></div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const SUITS = ['S', 'H', 'C', 'D'];
+const SYM = { S: '♠', H: '♥', C: '♣', D: '♦' };
+const SNAME = { S: 'Maça', H: 'Kupa', C: 'Sinek', D: 'Karo' };
+const RN = r => ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }[r] || String(r));
+const suitOf = c => c[0], rankOf = c => +c.slice(1);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let myName = ''; try { myName = localStorage.getItem('batak_name') || ''; } catch (e) {}
+$('name').value = myName;
+
+/* ======================= KURALLAR ======================= */
+function sortHand(h) {
+  const order = { S: 0, H: 1, C: 2, D: 3 };
+  return h.slice().sort((a, b) => order[suitOf(a)] - order[suitOf(b)] || rankOf(b) - rankOf(a));
+}
+function legalCards(hand, trick, trump, broken) {
+  if (!trick.length) {
+    if (broken || hand.every(c => suitOf(c) === trump)) return hand.slice();
+    return hand.filter(c => suitOf(c) !== trump);
+  }
+  const led = suitOf(trick[0].c);
+  const inSuit = hand.filter(c => suitOf(c) === led);
+  const trumpsInTrick = trick.filter(t => suitOf(t.c) === trump);
+  if (inSuit.length) {
+    if (led !== trump && trumpsInTrick.length) return inSuit;          // kozlanmış: renk ver yeter
+    const hi = Math.max(...trick.filter(t => suitOf(t.c) === led).map(t => rankOf(t.c)));
+    const higher = inSuit.filter(c => rankOf(c) > hi);
+    return higher.length ? higher : inSuit;                             // üstüne çıkma zorunlu
+  }
+  const trumps = hand.filter(c => suitOf(c) === trump);
+  if (trumps.length) {
+    const hiT = trumpsInTrick.length ? Math.max(...trumpsInTrick.map(t => rankOf(t.c))) : 0;
+    const higher = trumps.filter(c => rankOf(c) > hiT);
+    return higher.length ? higher : trumps;                             // koz atma zorunlu
+  }
+  return hand.slice();
+}
+function trickWinner(trick, trump) {
+  const led = suitOf(trick[0].c);
+  let best = trick[0];
+  for (const t of trick.slice(1)) {
+    const bs = suitOf(best.c), ts = suitOf(t.c);
+    if (ts === bs && rankOf(t.c) > rankOf(best.c)) best = t;
+    else if (ts === trump && bs !== trump) best = t;
+  }
+  return best.p;
+}
+
+/* ======================= OYUN (sunucu = oda kuran) ======================= */
+let G = null;          // yalnızca oda kuranda
+let isHost = false, mySeat = 0, V = null;   // V: ekrana çizilen görünüm
+let peer = null, hostConn = null;
+const conns = [null, null, null, null];
+let mode = 'koz', handsTotal = 8;
+
+function newSeats() {
+  return [{ name: myName || 'Ben', type: 'host' }, { name: '', type: 'empty' }, { name: '', type: 'empty' }, { name: '', type: 'empty' }];
+}
+const BOTNAMES = ['Bot Ayşe', 'Bot Mehmet', 'Bot Zeynep', 'Bot Ali'];
+
+function hostStart() {
+  G.seats.forEach((s, i) => { if (s.type === 'empty') { s.type = 'bot'; s.name = BOTNAMES[i]; } });
+  G.scores = [0, 0, 0, 0]; G.history = []; G.handNo = 0; G.dealer = Math.floor(Math.random() * 4);
+  G.phase = 'deal';
+  startHand();
+}
+function startHand() {
+  const deck = [];
+  for (const s of SUITS) for (let r = 2; r <= 14; r++) deck.push(s + r);
+  for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  G.hands = [0, 1, 2, 3].map(p => sortHand(deck.slice(p * 13, p * 13 + 13)));
+  G.bids = [null, null, null, null]; G.passed = [false, false, false, false];
+  G.highBid = 0; G.highBidder = null;
+  G.trump = G.mode === 'koz' ? 'S' : null; G.broken = false;
+  G.trick = []; G.tricks = [0, 0, 0, 0]; G.played = []; G.lastTrick = null; G.result = null;
+  G.turn = (G.dealer + 1) % 4;
+  G.phase = 'bid';
+  G.msg = (G.mode === 'koz' ? 'Herkes kaç el alacağını söylüyor' : 'İhale başladı (en az 5)');
+  pushState();
+}
+const next = p => (p + 1) % 4;
+
+function act(p, a) {                 // p: koltuk, a: hamle
+  if (!G || p !== G.turn) return;
+  if (G.phase === 'bid' && a.t === 'bid') {
+    if (G.mode === 'koz') {
+      const v = a.v | 0; if (v < 1 || v > 13) return;
+      G.bids[p] = v;
+      if (G.bids.every(b => b != null)) { G.phase = 'play'; G.turn = (G.dealer + 1) % 4; G.msg = ''; }
+      else G.turn = next(p);
+    } else {
+      const v = a.v | 0;
+      const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
+      const mustBid = active.length === 1 && G.highBidder == null;
+      if (v === 0) { if (mustBid) return; G.passed[p] = true; G.bids[p] = 'Pas'; }
+      else { if (v < Math.max(5, G.highBid + 1) || v > 13) return; G.highBid = v; G.highBidder = p; G.bids[p] = v; }
+      const act2 = [0, 1, 2, 3].filter(i => !G.passed[i]);
+      if (act2.length === 1 && G.highBidder === act2[0]) {
+        G.phase = 'trump'; G.turn = G.highBidder; G.msg = `${G.seats[G.highBidder].name} ihaleyi ${G.highBid} ile aldı`;
+      } else {
+        let n = next(p); while (G.passed[n]) n = next(n); G.turn = n;
+      }
+    }
+    return pushState();
+  }
+  if (G.phase === 'trump' && a.t === 'trump' && SUITS.includes(a.s)) {
+    G.trump = a.s; G.phase = 'play'; G.turn = G.highBidder;
+    G.msg = `Koz ${SNAME[a.s]} ${SYM[a.s]}`;
+    return pushState();
+  }
+  if (G.phase === 'play' && a.t === 'play' && !G.busy) {
+    const hand = G.hands[p];
+    if (!hand.includes(a.c) || !legalCards(hand, G.trick, G.trump, G.broken).includes(a.c)) return;
+    G.hands[p] = hand.filter(c => c !== a.c);
+    G.trick.push({ p, c: a.c }); G.played.push(a.c);
+    if (suitOf(a.c) === G.trump) G.broken = true;
+    G.msg = '';
+    if (G.trick.length < 4) { G.turn = next(p); return pushState(); }
+    const w = trickWinner(G.trick, G.trump);
+    G.busy = true; G.turn = -1; pushState();
+    setTimeout(() => {
+      G.tricks[w]++; G.lastTrick = G.trick; G.trick = []; G.busy = false; G.turn = w;
+      if (G.hands.every(h => !h.length)) endHand(); else pushState();
+    }, 1300);
+  }
+}
+function endHand() {
+  const d = [0, 0, 0, 0], notes = [];
+  if (G.mode === 'koz') {
+    for (let p = 0; p < 4; p++) {
+      if (G.tricks[p] >= G.bids[p]) d[p] = G.bids[p];
+      else { d[p] = -G.bids[p]; notes.push(`${G.seats[p].name} battı!`); }
+    }
+  } else {
+    for (let p = 0; p < 4; p++) {
+      if (p === G.highBidder) {
+        if (G.tricks[p] >= G.highBid) d[p] = G.tricks[p];
+        else { d[p] = -G.highBid; notes.push(`${G.seats[p].name} ihalede battı!`); }
+      } else d[p] = G.tricks[p];
+    }
+  }
+  for (let p = 0; p < 4; p++) G.scores[p] += d[p];
+  G.history.push({ d, bids: G.bids.slice(), tricks: G.tricks.slice(), hb: G.highBidder, trump: G.trump });
+  G.handNo++;
+  G.result = { d, notes };
+  G.phase = G.handNo >= G.handsTotal ? 'over' : 'handEnd';
+  G.turn = -1;
+  pushState();
+  if (G.phase === 'handEnd') setTimeout(() => { G.dealer = next(G.dealer); startHand(); }, 5000);
+}
+
+/* ---------- bot ---------- */
+function estimate(hand, trump) {
+  let e = 0;
+  for (const s of SUITS) {
+    const cs = hand.filter(c => suitOf(c) === s).map(rankOf).sort((a, b) => b - a);
+    const n = cs.length;
+    if (s === trump) {
+      e += cs.filter(r => r >= 12).length * 0.9 + Math.max(0, n - 3) * 0.85 + (n >= 3 ? 0.3 : 0);
+    } else {
+      if (cs.includes(14)) e += 1;
+      if (cs.includes(13) && n >= 2) e += 0.7;
+      if (cs.includes(12) && n >= 3) e += 0.35;
+      if (trump && n <= 1) e += hand.filter(c => suitOf(c) === trump).length >= 3 ? (n === 0 ? 0.8 : 0.45) : 0;
+    }
+  }
+  return e;
+}
+function botBid(p) {
+  const h = G.hands[p];
+  if (G.mode === 'koz') return { t: 'bid', v: Math.max(1, Math.min(13, Math.round(estimate(h, 'S')))) };
+  let best = 0; for (const s of SUITS) best = Math.max(best, estimate(h, s));
+  const need = Math.max(5, G.highBid + 1);
+  const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
+  if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: 5 };
+  return best + 0.4 >= need && need <= 13 ? { t: 'bid', v: need } : { t: 'bid', v: 0 };
+}
+function botTrump(p) {
+  let bs = 'S', be = -1;
+  for (const s of SUITS) { const e = estimate(G.hands[p], s); if (e > be) { be = e; bs = s; } }
+  return { t: 'trump', s: bs };
+}
+function isMaster(c, hand) {
+  const s = suitOf(c), r = rankOf(c);
+  for (let x = r + 1; x <= 14; x++) { const k = s + x; if (!G.played.includes(k) && !hand.includes(k)) return false; }
+  return true;
+}
+function botPlay(p) {
+  const hand = G.hands[p], L = legalCards(hand, G.trick, G.trump, G.broken);
+  const low = arr => arr.slice().sort((a, b) => (suitOf(a) === G.trump) - (suitOf(b) === G.trump) || rankOf(a) - rankOf(b))[0];
+  if (!G.trick.length) {
+    const masters = L.filter(c => isMaster(c, hand) && suitOf(c) !== G.trump);
+    if (masters.length) return { t: 'play', c: masters.sort((a, b) => rankOf(b) - rankOf(a))[0] };
+    const tm = L.filter(c => suitOf(c) === G.trump && isMaster(c, hand));
+    if (tm.length) return { t: 'play', c: tm[0] };
+    return { t: 'play', c: low(L) };
+  }
+  const winners = L.filter(c => trickWinner(G.trick.concat({ p, c }), G.trump) === p);
+  if (winners.length) return { t: 'play', c: low(winners) };
+  return { t: 'play', c: low(L) };
+}
+let botTimer = null;
+function scheduleBot() {
+  clearTimeout(botTimer);
+  if (!G || G.busy || G.turn < 0) return;
+  if (!['bid', 'trump', 'play'].includes(G.phase)) return;
+  if (G.seats[G.turn].type !== 'bot') return;
+  botTimer = setTimeout(() => {
+    const p = G.turn;
+    if (G.seats[p].type !== 'bot') return;
+    const a = G.phase === 'bid' ? botBid(p) : G.phase === 'trump' ? botTrump(p) : botPlay(p);
+    act(p, a);
+  }, G.phase === 'play' ? 750 : 900);
+}
+
+/* ---------- durum yayını ---------- */
+function viewFor(p) {
+  return {
+    t: 'st', you: p, phase: G.phase, mode: G.mode, dealer: G.dealer, turn: G.turn,
+    names: G.seats.map(s => s.name), types: G.seats.map(s => s.type),
+    bids: G.bids, passed: G.passed, highBid: G.highBid, highBidder: G.highBidder,
+    trump: G.trump, broken: G.broken, trick: G.trick, tricks: G.tricks, scores: G.scores,
+    counts: G.hands.map(h => h.length), hand: G.hands[p], handNo: G.handNo, handsTotal: G.handsTotal,
+    history: G.history, result: G.result, msg: G.msg
+  };
+}
+function pushState() {
+  for (let p = 1; p < 4; p++) if (conns[p] && conns[p].open) conns[p].send(viewFor(p));
+  V = viewFor(0); render();
+  scheduleBot();
+}
+function lobbyState() {
+  const st = { t: 'lobby', names: G.seats.map(s => s.name), types: G.seats.map(s => s.type), mode: G.mode, handsTotal: G.handsTotal };
+  for (let p = 1; p < 4; p++) if (conns[p] && conns[p].open) conns[p].send(Object.assign({ you: p }, st));
+  drawSeats($('seats'), st, 0);
+}
+
+/* ======================= AĞ ======================= */
+const PREFIX = 'sirkurtai-batak-';
+const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function status(t) { $('status').textContent = t; }
+function saveName() {
+  myName = ($('name').value || '').trim().slice(0, 14) || 'Oyuncu';
+  try { localStorage.setItem('batak_name', myName); } catch (e) {}
+}
+function initHostGame() {
+  G = { mode, handsTotal, seats: newSeats(), phase: 'lobby' };
+}
+function hostRoom() {
+  saveName(); isHost = true; mySeat = 0; initHostGame();
+  $('choose').hidden = true; $('pHost').hidden = false;
+  let code = ''; for (let i = 0; i < 5; i++) code += ABC[Math.floor(Math.random() * ABC.length)];
+  status('Oda hazırlanıyor...');
+  if (peer) peer.destroy();
+  peer = new Peer(PREFIX + code);
+  peer.on('open', () => {
+    $('roomCode').textContent = code;
+    $('link').value = location.origin + location.pathname + '#' + code;
+    status('Oda hazır. Linki gönder. İstediğin an başlatabilirsin.');
+    lobbyState();
+  });
+  peer.on('connection', c => {
+    c.on('data', d => onHostData(c, d));
+    c.on('close', () => onGuestLeft(c));
+  });
+  peer.on('error', e => {
+    if (e.type === 'unavailable-id') return hostRoom();
+    status('Sunucuya bağlanılamadı (' + e.type + '). Bot ile oynayabilirsin.');
+  });
+}
+function onHostData(c, d) {
+  if (d.t === 'hello') {
+    let seat = -1;
+    if (G.phase === 'lobby') seat = G.seats.findIndex(s => s.type === 'empty');
+    else seat = G.seats.findIndex(s => s.type === 'bot');      // oyun sürüyorsa bir botun yerine geçer
+    if (seat < 0) { c.send({ t: 'full' }); setTimeout(() => c.close(), 300); return; }
+    conns[seat] = c; c.seat = seat;
+    G.seats[seat] = { name: (d.name || 'Oyuncu').slice(0, 14), type: 'human' };
+    if (G.phase === 'lobby') lobbyState(); else pushState();
+    return;
+  }
+  if (c.seat == null) return;
+  act(c.seat, d);
+}
+function onGuestLeft(c) {
+  if (c.seat == null || conns[c.seat] !== c) return;
+  const s = c.seat; conns[s] = null;
+  if (G.phase === 'lobby') { G.seats[s] = { name: '', type: 'empty' }; lobbyState(); }
+  else { G.seats[s] = { name: G.seats[s].name + ' (bot)', type: 'bot' }; G.msg = 'Bir oyuncu ayrıldı, yerine bot geçti'; pushState(); }
+}
+function joinRoom(code) {
+  code = code.trim().toUpperCase();
+  if (code.length !== 5) return status('Oda kodu 5 karakter olmalı.');
+  saveName(); isHost = false;
+  $('choose').hidden = true; $('pGuest').hidden = false;
+  status('Odaya bağlanılıyor: ' + code + ' ...');
+  if (peer) peer.destroy();
+  peer = new Peer();
+  peer.on('open', () => {
+    hostConn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
+    hostConn.on('open', () => { hostConn.send({ t: 'hello', name: myName }); status('Bağlandın.'); });
+    hostConn.on('data', onGuestData);
+    hostConn.on('close', () => { status('Oda sahibiyle bağlantı koptu.'); showMsg('Bağlantı koptu', 99); });
+  });
+  peer.on('error', e => {
+    status(e.type === 'peer-unavailable' ? 'Oda bulunamadı. Kod doğru mu, oda açık mı?' : 'Bağlantı hatası (' + e.type + ')');
+    $('choose').hidden = false; $('pGuest').hidden = true;
+  });
+}
+function onGuestData(d) {
+  if (d.t === 'full') { status('Masa dolu.'); $('choose').hidden = false; $('pGuest').hidden = true; return; }
+  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${d.mode === 'koz' ? 'Koz Maça' : 'İhaleli'} · ${d.handsTotal} el`); return; }
+  if (d.t === 'st') { mySeat = d.you; V = d; render(); }
+}
+function send(a) {
+  if (isHost) act(0, a);
+  else if (hostConn && hostConn.open) hostConn.send(a);
+}
+
+/* ======================= LOBİ ======================= */
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+  mode = b.dataset.mode; document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('sel', x === b));
+});
+document.querySelectorAll('[data-hands]').forEach(b => b.onclick = () => {
+  handsTotal = +b.dataset.hands; document.querySelectorAll('[data-hands]').forEach(x => x.classList.toggle('sel', x === b));
+});
+function drawSeats(el, st, you) {
+  el.innerHTML = '';
+  st.names.forEach((n, i) => {
+    const d = document.createElement('div'); d.className = 'seat';
+    const t = st.types[i];
+    d.innerHTML = `<span>${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
+    el.appendChild(d);
+  });
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+$('bHost').onclick = hostRoom;
+$('bSolo').onclick = () => { saveName(); isHost = true; mySeat = 0; initHostGame(); hostStart(); };
+$('bJoin').onclick = () => joinRoom($('codeIn').value);
+$('bStart').onclick = () => { if (G && G.phase === 'lobby') hostStart(); };
+$('bCopy').onclick = () => {
+  const t = $('link'); t.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+    () => { $('bCopy').textContent = 'Kopyalandı ✓'; }, () => { document.execCommand('copy'); $('bCopy').textContent = 'Kopyalandı ✓'; });
+};
+$('bShare').onclick = () => {
+  const url = $('link').value;
+  if (navigator.share) navigator.share({ title: 'Batak', text: 'Batak oynayalım! Oda kodu: ' + $('roomCode').textContent, url }).catch(() => {});
+  else $('bCopy').click();
+};
+
+/* ======================= ÇİZİM ======================= */
+let selCard = null;
+const rel = s => (s - V.you + 4) % 4;      // 0 ben, 1 sağ, 2 karşı, 3 sol (oyun sağa doğru döner)
+function cardEl(c) {
+  const d = document.createElement('div');
+  const s = suitOf(c);
+  d.className = 'card' + (s === 'H' || s === 'D' ? ' red' : '');
+  d.innerHTML = `<div class="c1">${RN(rankOf(c))}<i>${SYM[s]}</i></div><div class="c2">${SYM[s]}</div>`;
+  return d;
+}
+let msgT = null;
+function showMsg(t, sec = 2.5) {
+  const m = $('msg'); m.textContent = t; m.hidden = !t;
+  clearTimeout(msgT); if (t && sec < 90) msgT = setTimeout(() => m.hidden = true, sec * 1000);
+}
+function render() {
+  if (!V) return;
+  $('lobby').hidden = true; $('game').hidden = false;
+  const me = V.you, W = innerWidth;
+  $('modePill').textContent = V.mode === 'koz' ? 'Koz Maça' : (V.highBidder != null && V.phase !== 'bid' ? `İhale: ${esc(V.names[V.highBidder])} ${V.highBid}` : 'İhaleli');
+  $('trumpPill').innerHTML = V.trump ? `Koz <span style="color:${V.trump === 'H' || V.trump === 'D' ? '#ff6b7d' : '#fff'}">${SYM[V.trump]}</span>` : 'Koz ?';
+  $('handPill').textContent = `El ${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
+
+  for (let s = 0; s < 4; s++) {
+    const pl = $('p' + rel(s));
+    pl.classList.toggle('turn', V.turn === s);
+    pl.querySelector('.nm').textContent = (s === me ? 'Sen' : V.names[s]) + (s === V.dealer ? ' 🂠' : '');
+    let st = `Aldığı ${V.tricks[s]}`;
+    const b = V.bids[s];
+    if (V.mode === 'koz') st += b != null ? ` / ${b}` : '';
+    else if (b != null) st += ` · ${b === 'Pas' ? 'Pas' : 'ihale ' + b}`;
+    st += ` · Puan ${V.scores[s]}`;
+    pl.querySelector('.st').textContent = st;
+  }
+
+  // ortadaki el
+  const tr = $('trick'); tr.innerHTML = '';
+  const off = [[0, 52], [62, 0], [0, -52], [-62, 0]];
+  for (const t of V.trick) {
+    const e = cardEl(t.c); const [x, y] = off[rel(t.p)];
+    e.style.setProperty('--cw', '56px');
+    e.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    tr.appendChild(e);
+  }
+
+  // elim
+  const hand = V.hand || [];
+  const n = hand.length || 1;
+  const cw = Math.max(40, Math.min(64, (W - 16) / (n * 0.56 + 0.44)));
+  const step = Math.min(cw * 0.95, (W - 16 - cw) / Math.max(1, n - 1));
+  const total = cw + step * (n - 1);
+  const hh = cw * 1.42 + 26;
+  document.documentElement.style.setProperty('--hh', hh + 'px');
+  const hEl = $('hand'); hEl.innerHTML = '';
+  const myTurnPlay = V.phase === 'play' && V.turn === me;
+  const legal = myTurnPlay ? legalCards(hand, V.trick, V.trump, V.broken) : [];
+  if (selCard && !hand.includes(selCard)) selCard = null;
+  hand.forEach((c, i) => {
+    const e = cardEl(c); e.style.setProperty('--cw', cw + 'px');
+    e.style.left = ((W - total) / 2 + i * step) + 'px';
+    if (myTurnPlay && !legal.includes(c)) e.classList.add('no');
+    if (c === selCard) e.classList.add('sel');
+    e.onclick = () => {
+      if (!myTurnPlay) return showMsg(V.phase === 'play' ? 'Sıra sende değil' : '', 1.2);
+      if (!legal.includes(c)) return showMsg(ruleHint(hand), 2);
+      if (selCard === c) { selCard = null; send({ t: 'play', c }); }
+      else { selCard = c; render(); }
+    };
+    hEl.appendChild(e);
+  });
+
+  // paneller
+  const pn = $('panel'); pn.hidden = true; pn.innerHTML = '';
+  if (V.phase === 'bid' && V.turn === me) {
+    pn.hidden = false;
+    if (V.mode === 'koz') {
+      pn.innerHTML = `<h3>Kaç el alacaksın? (koz ♠)</h3><div class="grid">${Array.from({ length: 13 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`;
+    } else {
+      const min = Math.max(5, V.highBid + 1);
+      const mustBid = V.passed.filter(x => !x).length === 1 && V.highBidder == null;
+      let h = `<h3>İhale ${V.highBidder != null ? `(şu an ${esc(V.names[V.highBidder])}: ${V.highBid})` : '(en az 5)'}</h3><div class="grid">`;
+      for (let v = min; v <= 13; v++) h += `<button data-v="${v}">${v}</button>`;
+      if (!mustBid) h += `<button class="pass" data-v="0">Pas</button>`;
+      pn.innerHTML = h + '</div>' + (mustBid ? '<small class="hint">Herkes pas dedi, ihaleyi sen almak zorundasın.</small>' : '');
+    }
+    pn.querySelectorAll('[data-v]').forEach(b => b.onclick = () => send({ t: 'bid', v: +b.dataset.v }));
+  } else if (V.phase === 'trump' && V.turn === me) {
+    pn.hidden = false;
+    pn.innerHTML = `<h3>İhale senin (${V.highBid}). Kozu seç:</h3><div class="suits">${SUITS.map(s => `<button data-s="${s}" style="color:${s === 'H' || s === 'D' ? '#d0142c' : '#111'}">${SYM[s]}</button>`).join('')}</div>`;
+    pn.querySelectorAll('[data-s]').forEach(b => b.onclick = () => send({ t: 'trump', s: b.dataset.s }));
+  }
+
+  // mesajlar
+  if (V.phase === 'bid' && V.turn !== me) showMsg(`${V.names[V.turn]} ${V.mode === 'koz' ? 'söylüyor' : 'ihale veriyor'}...`, 99);
+  else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} kozu seçiyor...`, 99);
+  else if (myTurnPlay) showMsg(V.trick.length ? 'Sıra sende (kartı seç, tekrar dokun)' : 'Eli sen açıyorsun', 99);
+  else if (V.msg) showMsg(V.msg, 3);
+  else if (V.phase === 'play') showMsg('', 0);
+
+  // el sonu / oyun sonu
+  if ((V.phase === 'handEnd' || V.phase === 'over') && V.result) showResult();
+  else if (!scoreOpen) $('ovl').hidden = true;
+}
+function ruleHint(hand) {
+  if (!V.trick.length) return 'Koz kırılmadan kozla el açılmaz';
+  const led = suitOf(V.trick[0].c);
+  if (hand.some(c => suitOf(c) === led)) return `${SNAME[led]} vermek ve mümkünse üstüne çıkmak zorundasın`;
+  return 'Elinde o renk yok: koz atmak (mümkünse yükseltmek) zorundasın';
+}
+function scoreTable() {
+  let h = '<table><tr><th>El</th>' + V.names.map((n, i) => `<th>${i === V.you ? 'Sen' : esc(n)}</th>`).join('') + '</tr>';
+  V.history.forEach((r, i) => {
+    h += `<tr><td>${i + 1}${r.trump ? ' ' + SYM[r.trump] : ''}</td>` + r.d.map((x, p) => `<td style="color:${x < 0 ? '#ff7b7b' : '#bff5cf'}">${x > 0 ? '+' : ''}${x}${r.hb === p ? '*' : ''}</td>`).join('') + '</tr>';
+  });
+  h += '<tr><th>Toplam</th>' + V.scores.map(s => `<th>${s}</th>`).join('') + '</tr></table>';
+  return h;
+}
+let scoreOpen = false;
+function showResult() {
+  const r = V.result, o = $('ovl');
+  o.hidden = false;
+  let h = `<h3 style="text-align:center">${V.phase === 'over' ? 'Oyun bitti!' : `El ${V.handNo} bitti`}</h3>`;
+  if (r.notes.length) h += `<p style="text-align:center;color:#ff9a9a;font-weight:800">${r.notes.map(esc).join('<br>')}</p>`;
+  h += scoreTable();
+  if (V.phase === 'over') {
+    const best = Math.max(...V.scores);
+    const win = V.names.filter((n, i) => V.scores[i] === best).map((n, i) => n);
+    h += `<p style="text-align:center;font-size:18px;font-weight:900">🏆 Kazanan: ${win.map(esc).join(', ')} (${best})</p>`;
+    h += isHost ? '<button class="btn" id="bAgain">Yeni oyun</button>' : '<small class="hint">Yeni oyunu oda sahibi başlatabilir.</small>';
+    h += '<button class="btn dark" id="bMenu">Ana menü</button>';
+  } else h += '<small class="hint">Sonraki el birazdan dağıtılıyor...</small>';
+  $('ovlIn').innerHTML = h;
+  if ($('bAgain')) $('bAgain').onclick = () => { hostStart(); };
+  if ($('bMenu')) $('bMenu').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
+}
+$('bScore').onclick = () => {
+  if (!V) return;
+  scoreOpen = true;
+  $('ovl').hidden = false;
+  $('ovlIn').innerHTML = '<h3 style="text-align:center">Puan tablosu</h3>' + scoreTable() + '<small class="hint">* ihaleyi alan</small><button class="btn" id="bClose">Kapat</button>';
+  $('bClose').onclick = () => { scoreOpen = false; $('ovl').hidden = true; };
+};
+addEventListener('resize', render);
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+
+/* ======================= BAŞLANGIÇ ======================= */
+if (typeof Peer === 'undefined') {
+  status('Bağlantı kütüphanesi yüklenemedi. Yine de bota karşı oynayabilirsin.');
+  $('bHost').disabled = $('bJoin').disabled = true;
+}
+if (/^#[A-Za-z0-9]{5}$/.test(location.hash)) {
+  const code = location.hash.slice(1).toUpperCase();
+  history.replaceState(null, '', location.pathname);
+  $('codeIn').value = code;
+  if (myName) joinRoom(code);
+  else status('Adını yaz ve "Katıl"a bas.');
+}
+</script>
+</body>
+</html>

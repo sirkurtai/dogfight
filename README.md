@@ -13,3 +13,5 @@ Solo: Ana sayfada Kolay / Orta / Zor seçip bilgisayara karşı oyna.
 Bağlantı eşleştirmesi için PeerJS ücretsiz sunucusu kullanılır; oyun verisi telefonlar arasında doğrudan (WebRTC) akar.
 
 3D versiyon: https://sirkurtai.github.io/dogfight/3d/
+
+Batak (4 kişilik, Koz Maça / İhaleli, eksik koltuğa bot): https://sirkurtai.github.io/dogfight/batak/
