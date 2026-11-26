@@ -34,6 +34,7 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 #wood{position:absolute;left:0;right:0;bottom:0;height:calc(var(--wood,230px) + env(safe-area-inset-bottom));
   background:repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 2px,rgba(0,0,0,0) 2px 7px,rgba(255,255,255,.03) 7px 9px,rgba(0,0,0,0) 9px 15px),
   linear-gradient(180deg,#8e3818 0%,#7a2f13 40%,#64250e 100%);box-shadow:inset 0 10px 14px rgba(0,0,0,.45);border-top:2px solid #4a1a08}
+.tab.mate{border-color:#8be28f}
 .tab{position:absolute;color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;
   background:linear-gradient(180deg,#a14c22,#6d2c10);border:2px solid #e3ac45;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:3;text-shadow:0 1px 1px rgba(0,0,0,.5)}
 #t2{left:50%;top:env(safe-area-inset-top);transform:translateX(-50%);border-top:0;border-radius:0 0 14px 14px;padding:7px 26px 6px;min-width:118px;text-align:center}
@@ -104,7 +105,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 5 · Batak HD görünümü · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 6 · Batak HD görünümü · Eşli mod · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -112,6 +113,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
     <p style="text-align:center;font-size:14px">Oyun türü</p>
     <div class="row">
       <button class="btn opt sel" data-mode="ihale">İhaleli</button>
+      <button class="btn opt" data-mode="esli">Eşli</button>
       <button class="btn opt" data-mode="koz">Koz Maça</button>
     </div>
     <p style="text-align:center;font-size:14px">Kaç el oynansın?</p>
@@ -126,7 +128,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
     <p style="text-align:center;margin-top:6px;font-size:14px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace">
     <button class="btn dark" id="bJoin">Katıl</button>
-    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar.</small>
+    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar. Eşli: karşılıklı oturanlar eştir (1-3 ve 2-4. koltuk), ihale 7'den başlar, takımın toplam eli sayılır.</small>
     <p style="text-align:center;font-size:13px"><a href="../" style="color:#f2c14e">✈ Dogfight oyununa dön</a></p>
   </div>
 
@@ -249,6 +251,9 @@ function startHand() {
   pushState();
 }
 const next = p => (p + 1) % 4;
+const minBid = m => m === 'esli' ? 7 : 4;
+const MODENAME = { koz: 'Koz Maça', ihale: 'İhaleli', esli: 'Eşli' };
+const mate = p => (p + 2) % 4;
 
 function act(p, a) {                 // p: koltuk, a: hamle
   if (!G || p !== G.turn) return;
@@ -263,7 +268,7 @@ function act(p, a) {                 // p: koltuk, a: hamle
       const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
       const mustBid = active.length === 1 && G.highBidder == null;
       if (v === 0) { if (mustBid) return; G.passed[p] = true; G.bids[p] = 'Pas'; }
-      else { if (v < Math.max(4, G.highBid + 1) || v > 13) return; G.highBid = v; G.highBidder = p; G.bids[p] = v; }
+      else { if (v < Math.max(minBid(G.mode), G.highBid + 1) || v > 13) return; G.highBid = v; G.highBidder = p; G.bids[p] = v; }
       const act2 = [0, 1, 2, 3].filter(i => !G.passed[i]);
       if (act2.length === 1 && G.highBidder === act2[0]) {
         G.phase = 'trump'; G.turn = G.highBidder; G.msg = `${G.seats[G.highBidder].name} ihaleyi ${G.highBid} ile aldı`;
@@ -306,6 +311,12 @@ function endHand() {
       if (G.tricks[p] >= G.bids[p]) d[p] = G.bids[p];
       else { d[p] = -G.bids[p]; notes.push(`${G.seats[p].name} battı!`); }
     }
+  } else if (G.mode === 'esli') {
+    const tt = [G.tricks[0] + G.tricks[2], G.tricks[1] + G.tricks[3]], bt = G.highBidder % 2, dt = [0, 0];
+    if (tt[bt] >= G.highBid) dt[bt] = tt[bt];
+    else { dt[bt] = -G.highBid; notes.push(`${G.seats[G.highBidder].name} & ${G.seats[mate(G.highBidder)].name} ihalede battı!`); }
+    dt[1 - bt] = tt[1 - bt];
+    for (let p = 0; p < 4; p++) d[p] = dt[p % 2];
   } else {
     for (let p = 0; p < 4; p++) {
       if (p === G.highBidder) {
@@ -346,9 +357,13 @@ function botBid(p) {
   const h = G.hands[p];
   if (G.mode === 'koz') return { t: 'bid', v: Math.max(1, Math.min(13, Math.round(estimate(h, 'S')))) };
   let best = 0; for (const s of SUITS) best = Math.max(best, estimate(h, s));
-  const need = Math.max(4, G.highBid + 1);
+  const mn = minBid(G.mode), need = Math.max(mn, G.highBid + 1);
   const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
-  if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: 4 };
+  if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: mn };
+  if (G.mode === 'esli') {
+    if (G.highBidder === mate(p)) return { t: 'bid', v: 0 };          // eşini geçme
+    return best + 2.6 >= need && need <= 13 ? { t: 'bid', v: need } : { t: 'bid', v: 0 };   // eşinden ~2.5 el bekler
+  }
   return best + 0.4 >= need && need <= 13 ? { t: 'bid', v: need } : { t: 'bid', v: 0 };
 }
 function botTrump(p) {
@@ -370,6 +385,10 @@ function botPlay(p) {
     const tm = L.filter(c => suitOf(c) === G.trump && isMaster(c, hand));
     if (tm.length) return { t: 'play', c: tm[0] };
     return { t: 'play', c: low(L) };
+  }
+  if (G.mode === 'esli' && trickWinner(G.trick, G.trump) === mate(p)) {
+    const safe = L.filter(c => trickWinner(G.trick.concat({ p, c }), G.trump) === mate(p));
+    if (safe.length) return { t: 'play', c: low(safe) };                 // eşinin elini kesme
   }
   const winners = L.filter(c => trickWinner(G.trick.concat({ p, c }), G.trump) === p);
   if (winners.length) return { t: 'play', c: low(winners) };
@@ -485,7 +504,7 @@ function joinRoom(code) {
 }
 function onGuestData(d) {
   if (d.t === 'full') { status('Masa dolu.'); $('choose').hidden = false; $('pGuest').hidden = true; return; }
-  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${d.mode === 'koz' ? 'Koz Maça' : 'İhaleli'} · ${d.handsTotal} el`); return; }
+  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${MODENAME[d.mode]} · ${d.handsTotal} el${d.mode === 'esli' ? ` · eşiniz ${d.names[(d.you + 2) % 4] || 'karşı koltuk'}` : ''}`); return; }
   if (d.t === 'st') { mySeat = d.you; V = d; render(); }
 }
 function send(a) {
@@ -505,7 +524,7 @@ function drawSeats(el, st, you) {
   st.names.forEach((n, i) => {
     const d = document.createElement('div'); d.className = 'seat';
     const t = st.types[i];
-    d.innerHTML = `<span>${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
+    d.innerHTML = `<span>${st.mode === 'esli' ? (i % 2 ? '🟥 ' : '🟩 ') : ''}${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
     el.appendChild(d);
   });
 }
@@ -562,6 +581,10 @@ function countText(s) {
   const b = V.bids[s];
   if (V.phase === 'bid') return b == null ? '' : b === 'Pas' ? 'PAS' : String(b);
   if (V.mode === 'koz') return b != null ? `${V.tricks[s]}:${b}` : String(V.tricks[s]);
+  if (V.mode === 'esli' && V.highBidder != null && s % 2 === V.highBidder % 2) {
+    const tt = V.tricks[s] + V.tricks[(s + 2) % 4];
+    return s === V.highBidder ? `${tt}:${V.highBid}` : String(V.tricks[s]);
+  }
   return s === V.highBidder ? `${V.tricks[s]}:${V.highBid}` : String(V.tricks[s]);
 }
 
@@ -618,7 +641,8 @@ function render() {
 
   for (let s = 0; s < 4; s++) {
     const r = rel(s);
-    $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])} ${V.scores[s]}`;
+    $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])}${V.mode === 'esli' && s === (me + 2) % 4 ? ' (EŞ)' : ''} ${V.scores[s]}`;
+    $('t' + r).classList.toggle('mate', V.mode === 'esli' && s % 2 === me % 2);
     $('c' + r).textContent = countText(s);
     $('a' + r).hidden = !(V.turn === s && ['bid', 'trump', 'play'].includes(V.phase));
   }
@@ -663,7 +687,7 @@ function render() {
     if (V.mode === 'koz') {
       pn.innerHTML = `<div class="cap">Kaç el alacaksınız? (koz ♠)</div><div class="ob">${Array.from({ length: 13 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`;
     } else {
-      const min = Math.max(4, V.highBid + 1);
+      const min = Math.max(minBid(V.mode), V.highBid + 1);
       const mustBid = V.passed.filter(x => !x).length === 1 && V.highBidder == null;
       let h = `<div class="ob">`;
       for (let v = min; v <= 13; v++) h += `<button data-v="${v}">${v}</button>`;
@@ -706,21 +730,26 @@ function scoreTable() {
 function showResult() {
   const o = $('ovl'), r = V.result;
   o.hidden = false;
-  const order = [0, 1, 2, 3].sort((a, b) => V.scores[b] - V.scores[a]);
+  const nm = p => p === V.you ? 'SİZ' : esc(up(V.names[p]));
+  // eşlide her takım tek satır: "SİZ & ZEYNEP"
+  const units = V.mode === 'esli'
+    ? [0, 1].map(t => ({ ps: [t, t + 2], label: [t, t + 2].sort((a, b) => (b === V.you) - (a === V.you)).map(nm).join(' & '), mine: V.you % 2 === t }))
+    : [0, 1, 2, 3].map(p => ({ ps: [p], label: nm(p), mine: p === V.you }));
+  const order = units.sort((a, b) => V.scores[b.ps[0]] - V.scores[a.ps[0]]);
   let h = '';
   if (V.phase === 'over') {
-    const best = V.scores[order[0]];
-    for (const p of order) {
-      const win = V.scores[p] === best;
-      h += `<div class="rrow"><span class="nm">${p === V.you ? 'SİZ' : esc(up(V.names[p]))} ${win ? (p === V.you ? 'KAZANDINIZ' : 'KAZANDI') : (p === V.you ? 'KAYBETTİNİZ' : 'KAYBETTİ')}</span><span class="sc">${V.scores[p]}</span><span class="dot ${win ? 'g' : 'r'}"></span></div>`;
+    const best = V.scores[order[0].ps[0]];
+    for (const u of order) {
+      const sc = V.scores[u.ps[0]], win = sc === best, pl = u.ps.length > 1;
+      h += `<div class="rrow"><span class="nm">${u.label} ${win ? (u.mine ? 'KAZANDINIZ' : pl ? 'KAZANDI' : 'KAZANDI') : (u.mine ? 'KAYBETTİNİZ' : 'KAYBETTİ')}</span><span class="sc">${sc}</span><span class="dot ${win ? 'g' : 'r'}"></span></div>`;
     }
     h += isHost ? '<button class="pill" id="bAgain">YENİ OYUN</button>' : '<div style="text-align:center;font-size:12px;opacity:.75">Yeni oyunu oda sahibi başlatır</div>';
     h += '<button class="pill gray" id="bMenu2">ANA MENÜ</button>';
   } else {
     if (r && r.notes.length) h += `<div class="notes">${r.notes.map(esc).join('<br>')}</div>`;
-    for (const p of order) {
-      const d = r ? r.d[p] : 0;
-      h += `<div class="rrow"><span class="nm">${p === V.you ? 'SİZ' : esc(up(V.names[p]))}</span><span class="sc">${V.scores[p]}</span><span class="badge ${d < 0 ? 'r' : 'g'}">${d > 0 ? '+' : ''}${d}</span></div>`;
+    for (const u of order) {
+      const p = u.ps[0], d = r ? r.d[p] : 0;
+      h += `<div class="rrow"><span class="nm">${u.label}</span><span class="sc">${V.scores[p]}</span><span class="badge ${d < 0 ? 'r' : 'g'}">${d > 0 ? '+' : ''}${d}</span></div>`;
     }
     h += '<button class="pill" id="bNext">YENİ EL</button>';
   }
