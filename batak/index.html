@@ -25,6 +25,12 @@ input,select{width:100%;background:#0b3320;color:#fff;border:1px solid #3c8a62;b
 #roomCode{font-size:42px;font-weight:900;letter-spacing:10px;text-align:center;font-family:monospace}
 .seat{display:flex;justify-content:space-between;background:#0b3320;border-radius:10px;padding:10px 12px;font-size:15px}
 .seat b{opacity:.75;font-weight:600}
+.seat.dr{touch-action:none;cursor:grab;border:1px dashed rgba(242,193,78,.5)}
+.seat.drag{opacity:.35}
+.seat.selx{outline:2px solid #f2c14e}
+.ghost{position:fixed;z-index:99;pointer-events:none;opacity:.92;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.team{background:rgba(0,0,0,.18);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.team .tt{font-size:13px;font-weight:800;opacity:.9}
 small.hint{font-size:12px;opacity:.75;text-align:center}
 
 #game{position:fixed;inset:0;overflow:hidden;background:
@@ -57,9 +63,14 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 #handNo{position:absolute;left:calc(env(safe-area-inset-left) + 8px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 8px);font-size:11px;font-weight:700;color:#fff;opacity:.9;z-index:3}
 #gear{position:absolute;right:calc(env(safe-area-inset-right) + 10px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 6px);width:30px;height:30px;border-radius:50%;border:0;
   background:rgba(0,0,0,.35);color:#fff;font-size:19px;line-height:30px;z-index:4}
+#redeal{position:absolute;right:calc(env(safe-area-inset-right) + 46px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 6px);height:30px;padding:0 10px;border-radius:15px;border:0;background:#f2a524;color:#3a1d00;font-size:18px;font-weight:900;z-index:4}
 #trick{position:absolute;width:0;height:0;z-index:2}
 #dummy{position:absolute;left:0;top:0;width:0;height:0;z-index:2}
-#dummy .card{position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.45)}
+#dummy .card{position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.45);transition:transform .1s}
+#dummy .card .idx{width:calc(var(--cw)*.42)}
+#dummy .card .idx b{font-size:calc(var(--cw)*.4)}
+#dummy .card .idx i{font-size:calc(var(--cw)*.32)}
+#dummy .lbl{font-size:12px !important}
 #dummy .card.no{filter:brightness(.62)}
 #dummy .card.pick{box-shadow:0 0 0 2px #ffd34d,0 1px 2px rgba(0,0,0,.45)}
 #dummy .lbl{position:absolute;font-size:10px;font-weight:800;color:#ffe9a8;white-space:nowrap;text-shadow:0 1px 2px #000}
@@ -110,7 +121,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 7 · Batak HD görünümü · Eşli & Açmalı · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 8 · Batak HD görünümü · Eşli & Açmalı · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -167,6 +178,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
   <div id="trumpInd" hidden></div>
   <div id="handNo"></div>
   <button id="gear" title="Menü">⚙</button>
+  <button id="redeal" title="Kartları yeniden dağıt" hidden>↻</button>
   <div id="dummy"></div>
   <div id="trick"></div>
   <div id="msg" hidden></div>
@@ -310,6 +322,10 @@ function act(p, a) {                 // p: hamleyi yapan koltuk
     }, 1300);
   }
 }
+function redeal() {                 // solo oyunda ilk elde kartları yeniden dağıt
+  if (!G || !G.solo || G.handNo !== 0 || !(G.phase === 'bid' || G.phase === 'trump')) return;
+  clearTimeout(botTimer); startHand(); G.msg = 'Kartlar yeniden dağıtıldı'; pushState(); G.msg = '';
+}
 function nextHand() {
   clearTimeout(G.autoNext);
   if (!G || G.phase !== 'handEnd') return;
@@ -428,7 +444,8 @@ function viewFor(p) {
     trump: G.trump, broken: G.broken, trick: G.trick, tricks: G.tricks, scores: G.scores,
     counts: G.hands.map(h => h.length), hand: G.hands[p], handNo: G.handNo, handsTotal: G.handsTotal,
     history: G.history, result: G.result, msg: G.msg, lastWinner: G.lastWinner,
-    dummy: G.dummy, dummyHand: G.dummy != null ? G.hands[G.dummy] : null
+    dummy: G.dummy, dummyHand: G.dummy != null ? G.hands[G.dummy] : null,
+    canRedeal: !!G.solo && G.handNo === 0 && (G.phase === 'bid' || G.phase === 'trump')
   };
 }
 function pushState() {
@@ -531,18 +548,71 @@ document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
 document.querySelectorAll('[data-hands]').forEach(b => b.onclick = () => {
   handsTotal = +b.dataset.hands; document.querySelectorAll('[data-hands]').forEach(x => x.classList.toggle('sel', x === b));
 });
+let seatPick = null;
+function swapSeats(i, j) {                       // oda kuran (koltuk 1) sabit; diğerleri yer değiştirir
+  if (!G || G.phase !== 'lobby' || i === j || i < 1 || j < 1) return;
+  [G.seats[i], G.seats[j]] = [G.seats[j], G.seats[i]];
+  [conns[i], conns[j]] = [conns[j], conns[i]];
+  if (conns[i]) conns[i].seat = i; if (conns[j]) conns[j].seat = j;
+  lobbyState();
+}
+function seatHtml(st, i, you) {
+  const t = st.types[i], n = st.names[i];
+  const tag = t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : '';
+  return `<span>${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}${isPair(st.mode) && i === (you + 2) % 4 ? ' · eşiniz' : ''}</span><b>${tag}</b>`;
+}
 function drawSeats(el, st, you) {
   el.innerHTML = '';
-  st.names.forEach((n, i) => {
-    const d = document.createElement('div'); d.className = 'seat';
-    const t = st.types[i];
-    d.innerHTML = `<span>${isPair(st.mode) ? (i % 2 ? '🟥 ' : '🟩 ') : ''}${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
-    el.appendChild(d);
+  const editable = isHost && el.id === 'seats';
+  const mk = i => {
+    const d = document.createElement('div'); d.className = 'seat' + (editable && i > 0 ? ' dr' : '') + (seatPick === i ? ' selx' : '');
+    d.dataset.i = i; d.innerHTML = seatHtml(st, i, you);
+    if (editable && i > 0) bindDrag(d, i);
+    return d;
+  };
+  if (isPair(st.mode)) {
+    [[0, 2, '🟩 Takım 1'], [1, 3, '🟥 Takım 2']].forEach(([a, b, title]) => {
+      const box = document.createElement('div'); box.className = 'team';
+      box.innerHTML = `<div class="tt">${title}</div>`;
+      box.appendChild(mk(a)); box.appendChild(mk(b)); el.appendChild(box);
+    });
+  } else [0, 1, 2, 3].forEach(i => el.appendChild(mk(i)));
+  if (editable) {
+    const h = document.createElement('small'); h.className = 'hint';
+    h.textContent = isPair(st.mode) ? 'Eşleri ayarlamak için bir oyuncuyu basılı tutup başka koltuğa sürükleyin (ya da iki koltuğa sırayla dokunun). Sizin eşiniz Takım 1\'deki diğer koltuktur.' : 'Oturma sırasını değiştirmek için oyuncuyu sürükleyip başka koltuğa bırakın.';
+    el.appendChild(h);
+  }
+}
+function bindDrag(d, i) {
+  let ghost = null, sx = 0, sy = 0, moved = false;
+  d.addEventListener('pointerdown', e => {
+    sx = e.clientX; sy = e.clientY; moved = false; d.setPointerCapture(e.pointerId);
   });
+  d.addEventListener('pointermove', e => {
+    if (!d.hasPointerCapture(e.pointerId)) return;
+    if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) {
+      moved = true; ghost = d.cloneNode(true); ghost.classList.add('ghost');
+      ghost.style.width = d.offsetWidth + 'px'; document.body.appendChild(ghost); d.classList.add('drag');
+    }
+    if (ghost) { ghost.style.left = (e.clientX - d.offsetWidth / 2) + 'px'; ghost.style.top = (e.clientY - 20) + 'px'; }
+  });
+  d.addEventListener('pointerup', e => {
+    if (ghost) {
+      ghost.remove(); ghost = null; d.classList.remove('drag');
+      const tgt = document.elementFromPoint(e.clientX, e.clientY);
+      const sd = tgt && tgt.closest('.seat');
+      if (sd && sd.dataset.i != null) swapSeats(i, +sd.dataset.i);
+      seatPick = null;
+    } else if (!moved) {                       // dokunarak değiştirme
+      if (seatPick == null) { seatPick = i; lobbyState(); }
+      else { const a = seatPick; seatPick = null; if (a === i) lobbyState(); else swapSeats(a, i); }
+    }
+  });
+  d.addEventListener('pointercancel', () => { if (ghost) { ghost.remove(); ghost = null; d.classList.remove('drag'); } });
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 $('bHost').onclick = hostRoom;
-$('bSolo').onclick = () => { saveName(); isHost = true; mySeat = 0; initHostGame(); hostStart(); };
+$('bSolo').onclick = () => { saveName(); isHost = true; mySeat = 0; initHostGame(); G.solo = true; hostStart(); };
 $('bJoin').onclick = () => joinRoom($('codeIn').value);
 $('bStart').onclick = () => { if (G && G.phase === 'lobby') hostStart(); };
 $('bCopy').onclick = () => {
@@ -557,7 +627,7 @@ $('bShare').onclick = () => {
 };
 
 /* ======================= ÇİZİM ======================= */
-let sortMode = 0, menuOpen = false, resultClosed = -1;
+let sortMode = 0, menuOpen = false, resultClosed = -1, selCard = null;
 const rel = s => (s - V.you + 4) % 4;          // 0 ben (alt), 1 sağ, 2 karşı (üst), 3 sol — oyun sağa doğru döner
 const isRed = s => s === 'H' || s === 'D';
 const up = t => String(t).toLocaleUpperCase('tr');
@@ -587,8 +657,19 @@ function computeLayout() {
   const feltTop = 30, feltBot = H - wood - 60;
   const cy = (feltTop + feltBot) / 2 + 6;
   root.setProperty('--midY', cy + 'px');
-  const dummyTop = V && V.dummy != null && V.phase === 'play' && rel(V.dummy) === 2;
-  LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy: dummyTop ? Math.min(cy + 70, feltBot - ch * 0.5) : cy };
+  // açık el (açmalı) yerleşimi
+  const showD = V && V.dummy != null && V.dummyHand && V.phase === 'play' && V.dummy !== V.you;
+  const dcw = Math.min(50, W * 0.125), dch = dcw * 1.42;
+  let dBottom = 0;
+  if (showD) {
+    const groups = SUITS.map(s => V.dummyHand.filter(c => suitOf(c) === s)).filter(g => g.length);
+    const maxLen = Math.max(1, ...groups.map(g => g.length));
+    dBottom = rel(V.dummy) === 2 ? 78 + dch + (maxLen - 1) * dcw * 0.55 : 58 + dch + (groups.length - 1) * dcw * 0.74;
+  }
+  const tcw = cw * (showD ? 0.78 : 0.88);
+  let tcy = cy;
+  if (showD) tcy = Math.min(Math.max(cy, dBottom + tcw * 1.59 + 4), feltBot + 40 - tcw * 1.49);
+  LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy: tcy, tcw, dcw, dch };
 }
 function countText(s) {
   const b = V.bids[s];
@@ -605,8 +686,9 @@ function countText(s) {
 const trickEls = new Map();
 let trickOut = false;
 function trickPos(r, k) {
-  const tcw = LY.cw * 0.92, tch = tcw * 1.42;
-  const off = [[0, tch * 0.36], [tcw * 0.55, -tch * 0.02], [0, -tch * 0.4], [-tcw * 0.55, tch * 0.02]][r];
+  // köşe (değer) görünür kalsın: sağ/sol kartlar bir kart eni yana, üst/alt kartlar yarım boy yukarı/aşağı
+  const tcw = LY.tcw, tch = tcw * 1.42;
+  const off = [[0, tch * 0.55], [tcw * 1.02, -tch * 0.05], [0, -tch * 0.62], [-tcw * 1.02, tch * 0.05]][r];
   return [off[0] - tcw / 2, off[1] - tch / 2];
 }
 function fromPos(r) {
@@ -616,7 +698,7 @@ function fromPos(r) {
 function renderTrick() {
   const tr = $('trick');
   tr.style.left = LY.cx + 'px'; tr.style.top = LY.cy + 'px';
-  const tcw = LY.cw * 0.92;
+  const tcw = LY.tcw;
   if (!V.trick.length) {
     if (trickEls.size && !trickOut) {
       trickOut = true;
@@ -631,7 +713,7 @@ function renderTrick() {
   const keep = new Set(V.trick.map(t => t.c));
   for (const [c, e] of trickEls) if (!keep.has(c)) { e.remove(); trickEls.delete(c); }
   V.trick.forEach((t, i) => {
-    const r = rel(t.p), [x, y] = trickPos(r), rot = hashRot(t.c);
+    const r = rel(t.p), [x, y] = trickPos(r), rot = hashRot(t.c) * 0.45;
     let e = trickEls.get(t.c);
     if (!e) {
       e = cardEl(t.c); e.style.setProperty('--cw', tcw + 'px'); e.style.zIndex = i + 1;
@@ -650,24 +732,31 @@ function renderDummy() {
   const box = $('dummy'); box.innerHTML = '';
   if (V.dummy == null || !V.dummyHand || V.phase !== 'play' || V.dummy === V.you) return;
   const r = rel(V.dummy), W = LY.W;
-  const dcw = Math.min(38, W * 0.095), dch = dcw * 1.42;
+  const dcw = LY.dcw, dch = LY.dch;
   const groups = SUITS.map(s => V.dummyHand.filter(c => suitOf(c) === s).sort((a, b) => rankOf(b) - rankOf(a))).filter(g => g.length);
   const mine = V.you === V.highBidder && V.turn === V.dummy;
   const legal = mine ? legalCards(V.dummyHand, V.trick, V.trump, V.broken) : [];
   const add = (c, x, y, z) => {
     const e = cardEl(c); e.style.setProperty('--cw', dcw + 'px');
     e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.zIndex = z;
-    if (mine) { e.classList.add(legal.includes(c) ? 'pick' : 'no'); e.onclick = () => legal.includes(c) ? send({ t: 'play', c }) : showMsg(ruleHint(V.dummyHand), 2); }
+    if (mine) {
+      e.classList.add(legal.includes(c) ? 'pick' : 'no');
+      if (c === selCard) e.style.transform = 'translateY(-14px)';
+      e.onclick = () => {
+        if (!legal.includes(c)) return showMsg(ruleHint(V.dummyHand), 2);
+        if (selCard === c) { selCard = null; send({ t: 'play', c }); } else { selCard = c; render(); }
+      };
+    }
     box.appendChild(e);
   };
   const lbl = document.createElement('div'); lbl.className = 'lbl';
   lbl.textContent = mine ? 'EŞİNİZİN ELİ — SİZ OYNAYIN' : `${up(V.names[V.dummy])} AÇIK EL`;
   if (r === 2) {              // karşıda: renkler yan yana sütun, kartlar aşağı doğru
-    const colW = dcw + 6, step = Math.min(15, dch * 0.36), x0 = (W - groups.length * colW) / 2, y0 = 78;
+    const colW = dcw + 6, step = dcw * 0.55, x0 = (W - groups.length * colW) / 2, y0 = 78;
     groups.forEach((g, gi) => g.forEach((c, i) => add(c, x0 + gi * colW, y0 + i * step, i)));
     lbl.style.left = (W / 2) + 'px'; lbl.style.top = '63px'; lbl.style.transform = 'translateX(-50%)';
   } else {                    // yanda: üst köşede renkler alt alta satır, kartlar yana doğru
-    const step = Math.min(15, dcw * 0.42), rowH = dch * 0.52, y0 = 58;
+    const step = dcw * 0.42, rowH = dcw * 0.74, y0 = 58;
     groups.forEach((g, gi) => g.forEach((c, i) => {
       const w = dcw + step * (g.length - 1);
       const x = r === 3 ? 40 + i * step : W - 44 - w + i * step;
@@ -694,6 +783,7 @@ function render() {
   const ti = $('trumpInd');
   ti.hidden = !V.trump || V.phase === 'bid';
   if (V.trump) { ti.textContent = SYM[V.trump]; ti.style.color = isRed(V.trump) ? '#d8131f' : '#111'; }
+  $('redeal').hidden = !(isHost && V.canRedeal);
   $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
 
   renderTrick();
@@ -707,6 +797,8 @@ function render() {
   const hEl = $('hand'); hEl.innerHTML = '';
   const myTurnPlay = V.phase === 'play' && V.turn === me && V.trick.length < 4 && V.dummy !== me;
   const legal = myTurnPlay ? legalCards(V.hand, V.trick, V.trump, V.broken) : [];
+  const dummyTurn = V.phase === 'play' && V.turn === V.dummy && V.highBidder === me && V.dummyHand;
+  if (selCard && !(myTurnPlay && hand.includes(selCard)) && !(dummyTurn && V.dummyHand.includes(selCard))) selCard = null;
   hand.forEach((c, i) => {
     const row = rows === 2 && i >= perRow ? 1 : 0, col = row ? i - perRow : i;
     const k = row ? n - perRow : Math.min(n, perRow);
@@ -715,13 +807,14 @@ function render() {
     const e = cardEl(c); e.style.setProperty('--cw', LY.cw + 'px');
     e.style.left = ((LY.W - rowW) / 2 + col * LY.step) + 'px';
     e.style.top = ((rows === 2 ? row : 1) * LY.rowGap * (rows === 2 ? 1 : 0.5) + 6 + d * d * 0.9) + 'px';
-    e.style.transform = `rotate(${d * 1.5}deg)`;
+    e.style.transform = `rotate(${d * 1.5}deg)` + (c === selCard ? ' translateY(-20px)' : '');
     e.style.zIndex = row * 20 + col;
     if (myTurnPlay && !legal.includes(c)) e.classList.add('no');
     e.onclick = () => {
       if (!myTurnPlay) { if (V.phase === 'play') showMsg('Sıra sizde değil', 1.2); return; }
       if (!legal.includes(c)) { e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); showMsg(ruleHint(V.hand), 2.2); return; }
-      send({ t: 'play', c });
+      if (selCard === c) { selCard = null; send({ t: 'play', c }); }       // 2. dokunuş: at
+      else { selCard = c; render(); }                                    // 1. dokunuş: kaldır
     };
     hEl.appendChild(e);
   });
@@ -750,6 +843,7 @@ function render() {
   // kısa mesajlar
   if (!pn.hidden) showMsg('', 0);
   else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} koz seçiyor...`, 99);
+  else if (myTurnPlay && selCard) showMsg('Atmak için karta tekrar dokunun', 99);
   else if (myTurnPlay && !V.trick.length) showMsg('Eli siz açıyorsunuz', 2);
   else if (V.phase === 'play' && V.dummy === me && V.turn === me) showMsg('Elinizi eşiniz oynuyor', 99);
   else if (V.phase === 'play' && V.turn === V.dummy && V.highBidder === me && V.trick.length < 4) showMsg('Eşinizin açık elinden kart seçin', 99);
@@ -816,6 +910,7 @@ function showMenu() {
   $('mQuit').onclick = () => { if (peer) peer.destroy(); location.href = location.pathname; };
 }
 $('gear').onclick = () => { menuOpen = true; render(); };
+$('redeal').onclick = () => { if (isHost) redeal(); };
 addEventListener('resize', render);
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
