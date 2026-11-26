@@ -58,6 +58,11 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 #gear{position:absolute;right:calc(env(safe-area-inset-right) + 10px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 6px);width:30px;height:30px;border-radius:50%;border:0;
   background:rgba(0,0,0,.35);color:#fff;font-size:19px;line-height:30px;z-index:4}
 #trick{position:absolute;width:0;height:0;z-index:2}
+#dummy{position:absolute;left:0;top:0;width:0;height:0;z-index:2}
+#dummy .card{position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.45)}
+#dummy .card.no{filter:brightness(.62)}
+#dummy .card.pick{box-shadow:0 0 0 2px #ffd34d,0 1px 2px rgba(0,0,0,.45)}
+#dummy .lbl{position:absolute;font-size:10px;font-weight:800;color:#ffe9a8;white-space:nowrap;text-shadow:0 1px 2px #000}
 #trick .card{position:absolute;left:0;top:0;transition:transform .35s cubic-bezier(.2,.8,.3,1),opacity .35s}
 #hand{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 6px);height:var(--hh,200px);z-index:3}
 #hand .card{position:absolute;transform-origin:50% 100%}
@@ -105,7 +110,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 6 · Batak HD görünümü · Eşli mod · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 7 · Batak HD görünümü · Eşli & Açmalı · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -114,6 +119,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
     <div class="row">
       <button class="btn opt sel" data-mode="ihale">İhaleli</button>
       <button class="btn opt" data-mode="esli">Eşli</button>
+      <button class="btn opt" data-mode="acik">Açmalı</button>
       <button class="btn opt" data-mode="koz">Koz Maça</button>
     </div>
     <p style="text-align:center;font-size:14px">Kaç el oynansın?</p>
@@ -128,7 +134,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
     <p style="text-align:center;margin-top:6px;font-size:14px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace">
     <button class="btn dark" id="bJoin">Katıl</button>
-    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar. Eşli: karşılıklı oturanlar eştir (1-3 ve 2-4. koltuk), ihale 7'den başlar, takımın toplam eli sayılır.</small>
+    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar. Eşli: karşılıklı oturanlar eştir (1-3 ve 2-4. koltuk), ihale 7'den başlar, takımın toplam eli sayılır. Açmalı: ihaleyi alanın eşi elini yere açar, o eli ihaleyi alan oynar.</small>
     <p style="text-align:center;font-size:13px"><a href="../" style="color:#f2c14e">✈ Dogfight oyununa dön</a></p>
   </div>
 
@@ -161,6 +167,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
   <div id="trumpInd" hidden></div>
   <div id="handNo"></div>
   <button id="gear" title="Menü">⚙</button>
+  <div id="dummy"></div>
   <div id="trick"></div>
   <div id="msg" hidden></div>
   <div id="hand"></div>
@@ -243,7 +250,7 @@ function startHand() {
   G.hands = [0, 1, 2, 3].map(p => sortHand(deck.slice(p * 13, p * 13 + 13)));
   G.bids = [null, null, null, null]; G.passed = [false, false, false, false];
   G.highBid = 0; G.highBidder = null;
-  G.trump = G.mode === 'koz' ? 'S' : null; G.broken = false;
+  G.trump = G.mode === 'koz' ? 'S' : null; G.broken = false; G.dummy = null;
   G.trick = []; G.tricks = [0, 0, 0, 0]; G.played = []; G.lastTrick = null; G.result = null; G.lastWinner = null;
   G.turn = (G.dealer + 1) % 4;
   G.phase = 'bid';
@@ -251,12 +258,15 @@ function startHand() {
   pushState();
 }
 const next = p => (p + 1) % 4;
-const minBid = m => m === 'esli' ? 7 : 4;
-const MODENAME = { koz: 'Koz Maça', ihale: 'İhaleli', esli: 'Eşli' };
+const isPair = m => m === 'esli' || m === 'acik';
+const minBid = m => isPair(m) ? 7 : 4;
+const MODENAME = { koz: 'Koz Maça', ihale: 'İhaleli', esli: 'Eşli', acik: 'Açmalı Eşli' };
+// açmalıda yerdeki elin (eşin) sırası gelince kartı ihaleyi alan seçer
+const ctrl = t => (G && G.dummy != null && t === G.dummy && G.phase === 'play') ? G.highBidder : t;
 const mate = p => (p + 2) % 4;
 
-function act(p, a) {                 // p: koltuk, a: hamle
-  if (!G || p !== G.turn) return;
+function act(p, a) {                 // p: hamleyi yapan koltuk
+  if (!G || G.turn < 0 || p !== ctrl(G.turn)) return;
   if (G.phase === 'bid' && a.t === 'bid') {
     if (G.mode === 'koz') {
       const v = a.v | 0; if (v < 1 || v > 13) return;
@@ -281,16 +291,17 @@ function act(p, a) {                 // p: koltuk, a: hamle
   if (G.phase === 'trump' && a.t === 'trump' && SUITS.includes(a.s)) {
     G.trump = a.s; G.phase = 'play'; G.turn = G.highBidder;
     G.msg = `Koz ${SNAME[a.s]} ${SYM[a.s]}`;
+    if (G.mode === 'acik') { G.dummy = mate(G.highBidder); G.msg += ` · ${G.seats[G.dummy].name} elini açtı`; }
     return pushState();
   }
   if (G.phase === 'play' && a.t === 'play' && !G.busy) {
-    const hand = G.hands[p];
+    const seat = G.turn, hand = G.hands[seat];
     if (!hand.includes(a.c) || !legalCards(hand, G.trick, G.trump, G.broken).includes(a.c)) return;
-    G.hands[p] = hand.filter(c => c !== a.c);
-    G.trick.push({ p, c: a.c }); G.played.push(a.c);
+    G.hands[seat] = hand.filter(c => c !== a.c);
+    G.trick.push({ p: seat, c: a.c }); G.played.push(a.c);
     if (suitOf(a.c) === G.trump) G.broken = true;
     G.msg = '';
-    if (G.trick.length < 4) { G.turn = next(p); return pushState(); }
+    if (G.trick.length < 4) { G.turn = next(seat); return pushState(); }
     const w = trickWinner(G.trick, G.trump);
     G.busy = true; G.turn = -1; pushState();
     setTimeout(() => {
@@ -311,7 +322,7 @@ function endHand() {
       if (G.tricks[p] >= G.bids[p]) d[p] = G.bids[p];
       else { d[p] = -G.bids[p]; notes.push(`${G.seats[p].name} battı!`); }
     }
-  } else if (G.mode === 'esli') {
+  } else if (isPair(G.mode)) {
     const tt = [G.tricks[0] + G.tricks[2], G.tricks[1] + G.tricks[3]], bt = G.highBidder % 2, dt = [0, 0];
     if (tt[bt] >= G.highBid) dt[bt] = tt[bt];
     else { dt[bt] = -G.highBid; notes.push(`${G.seats[G.highBidder].name} & ${G.seats[mate(G.highBidder)].name} ihalede battı!`); }
@@ -360,7 +371,7 @@ function botBid(p) {
   const mn = minBid(G.mode), need = Math.max(mn, G.highBid + 1);
   const active = [0, 1, 2, 3].filter(i => !G.passed[i]);
   if (active.length === 1 && G.highBidder == null) return { t: 'bid', v: mn };
-  if (G.mode === 'esli') {
+  if (isPair(G.mode)) {
     if (G.highBidder === mate(p)) return { t: 'bid', v: 0 };          // eşini geçme
     return best + 2.6 >= need && need <= 13 ? { t: 'bid', v: need } : { t: 'bid', v: 0 };   // eşinden ~2.5 el bekler
   }
@@ -386,7 +397,7 @@ function botPlay(p) {
     if (tm.length) return { t: 'play', c: tm[0] };
     return { t: 'play', c: low(L) };
   }
-  if (G.mode === 'esli' && trickWinner(G.trick, G.trump) === mate(p)) {
+  if (isPair(G.mode) && trickWinner(G.trick, G.trump) === mate(p)) {
     const safe = L.filter(c => trickWinner(G.trick.concat({ p, c }), G.trump) === mate(p));
     if (safe.length) return { t: 'play', c: low(safe) };                 // eşinin elini kesme
   }
@@ -399,12 +410,12 @@ function scheduleBot() {
   clearTimeout(botTimer);
   if (!G || G.busy || G.turn < 0) return;
   if (!['bid', 'trump', 'play'].includes(G.phase)) return;
-  if (G.seats[G.turn].type !== 'bot') return;
+  if (G.seats[ctrl(G.turn)].type !== 'bot') return;
   botTimer = setTimeout(() => {
-    const p = G.turn;
-    if (G.seats[p].type !== 'bot') return;
+    const p = G.turn, who = ctrl(p);
+    if (G.turn < 0 || G.seats[who].type !== 'bot') return;
     const a = G.phase === 'bid' ? botBid(p) : G.phase === 'trump' ? botTrump(p) : botPlay(p);
-    act(p, a);
+    act(who, a);
   }, G.phase === 'play' ? 750 : 900);
 }
 
@@ -416,7 +427,8 @@ function viewFor(p) {
     bids: G.bids, passed: G.passed, highBid: G.highBid, highBidder: G.highBidder,
     trump: G.trump, broken: G.broken, trick: G.trick, tricks: G.tricks, scores: G.scores,
     counts: G.hands.map(h => h.length), hand: G.hands[p], handNo: G.handNo, handsTotal: G.handsTotal,
-    history: G.history, result: G.result, msg: G.msg, lastWinner: G.lastWinner
+    history: G.history, result: G.result, msg: G.msg, lastWinner: G.lastWinner,
+    dummy: G.dummy, dummyHand: G.dummy != null ? G.hands[G.dummy] : null
   };
 }
 function pushState() {
@@ -504,7 +516,7 @@ function joinRoom(code) {
 }
 function onGuestData(d) {
   if (d.t === 'full') { status('Masa dolu.'); $('choose').hidden = false; $('pGuest').hidden = true; return; }
-  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${MODENAME[d.mode]} · ${d.handsTotal} el${d.mode === 'esli' ? ` · eşiniz ${d.names[(d.you + 2) % 4] || 'karşı koltuk'}` : ''}`); return; }
+  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${MODENAME[d.mode]} · ${d.handsTotal} el${isPair(d.mode) ? ` · eşiniz ${d.names[(d.you + 2) % 4] || 'karşı koltuk'}` : ''}`); return; }
   if (d.t === 'st') { mySeat = d.you; V = d; render(); }
 }
 function send(a) {
@@ -524,7 +536,7 @@ function drawSeats(el, st, you) {
   st.names.forEach((n, i) => {
     const d = document.createElement('div'); d.className = 'seat';
     const t = st.types[i];
-    d.innerHTML = `<span>${st.mode === 'esli' ? (i % 2 ? '🟥 ' : '🟩 ') : ''}${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
+    d.innerHTML = `<span>${isPair(st.mode) ? (i % 2 ? '🟥 ' : '🟩 ') : ''}${i + 1}. ${t === 'empty' ? '<i style="opacity:.6">boş (bot oturacak)</i>' : esc(n)}${i === you ? ' (sen)' : ''}</span><b>${t === 'host' ? 'oda sahibi' : t === 'human' ? 'oyuncu' : t === 'bot' ? 'bot' : ''}</b>`;
     el.appendChild(d);
   });
 }
@@ -575,13 +587,14 @@ function computeLayout() {
   const feltTop = 30, feltBot = H - wood - 60;
   const cy = (feltTop + feltBot) / 2 + 6;
   root.setProperty('--midY', cy + 'px');
-  LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy };
+  const dummyTop = V && V.dummy != null && V.phase === 'play' && rel(V.dummy) === 2;
+  LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy: dummyTop ? Math.min(cy + 70, feltBot - ch * 0.5) : cy };
 }
 function countText(s) {
   const b = V.bids[s];
   if (V.phase === 'bid') return b == null ? '' : b === 'Pas' ? 'PAS' : String(b);
   if (V.mode === 'koz') return b != null ? `${V.tricks[s]}:${b}` : String(V.tricks[s]);
-  if (V.mode === 'esli' && V.highBidder != null && s % 2 === V.highBidder % 2) {
+  if (isPair(V.mode) && V.highBidder != null && s % 2 === V.highBidder % 2) {
     const tt = V.tricks[s] + V.tricks[(s + 2) % 4];
     return s === V.highBidder ? `${tt}:${V.highBid}` : String(V.tricks[s]);
   }
@@ -633,6 +646,38 @@ function renderTrick() {
   });
 }
 
+function renderDummy() {
+  const box = $('dummy'); box.innerHTML = '';
+  if (V.dummy == null || !V.dummyHand || V.phase !== 'play' || V.dummy === V.you) return;
+  const r = rel(V.dummy), W = LY.W;
+  const dcw = Math.min(38, W * 0.095), dch = dcw * 1.42;
+  const groups = SUITS.map(s => V.dummyHand.filter(c => suitOf(c) === s).sort((a, b) => rankOf(b) - rankOf(a))).filter(g => g.length);
+  const mine = V.you === V.highBidder && V.turn === V.dummy;
+  const legal = mine ? legalCards(V.dummyHand, V.trick, V.trump, V.broken) : [];
+  const add = (c, x, y, z) => {
+    const e = cardEl(c); e.style.setProperty('--cw', dcw + 'px');
+    e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.zIndex = z;
+    if (mine) { e.classList.add(legal.includes(c) ? 'pick' : 'no'); e.onclick = () => legal.includes(c) ? send({ t: 'play', c }) : showMsg(ruleHint(V.dummyHand), 2); }
+    box.appendChild(e);
+  };
+  const lbl = document.createElement('div'); lbl.className = 'lbl';
+  lbl.textContent = mine ? 'EŞİNİZİN ELİ — SİZ OYNAYIN' : `${up(V.names[V.dummy])} AÇIK EL`;
+  if (r === 2) {              // karşıda: renkler yan yana sütun, kartlar aşağı doğru
+    const colW = dcw + 6, step = Math.min(15, dch * 0.36), x0 = (W - groups.length * colW) / 2, y0 = 78;
+    groups.forEach((g, gi) => g.forEach((c, i) => add(c, x0 + gi * colW, y0 + i * step, i)));
+    lbl.style.left = (W / 2) + 'px'; lbl.style.top = '63px'; lbl.style.transform = 'translateX(-50%)';
+  } else {                    // yanda: üst köşede renkler alt alta satır, kartlar yana doğru
+    const step = Math.min(15, dcw * 0.42), rowH = dch * 0.52, y0 = 58;
+    groups.forEach((g, gi) => g.forEach((c, i) => {
+      const w = dcw + step * (g.length - 1);
+      const x = r === 3 ? 40 + i * step : W - 44 - w + i * step;
+      add(c, x, y0 + gi * rowH, gi * 20 + i);
+    }));
+    lbl.style.top = '44px';
+    if (r === 3) lbl.style.left = '40px'; else { lbl.style.right = '0px'; lbl.style.left = (W - 44) + 'px'; lbl.style.transform = 'translateX(-100%)'; }
+  }
+  box.appendChild(lbl);
+}
 function render() {
   if (!V) return;
   $('lobby').hidden = true; $('game').hidden = false;
@@ -641,8 +686,8 @@ function render() {
 
   for (let s = 0; s < 4; s++) {
     const r = rel(s);
-    $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])}${V.mode === 'esli' && s === (me + 2) % 4 ? ' (EŞ)' : ''} ${V.scores[s]}`;
-    $('t' + r).classList.toggle('mate', V.mode === 'esli' && s % 2 === me % 2);
+    $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])}${isPair(V.mode) && s === (me + 2) % 4 ? ' (EŞ)' : ''} ${V.scores[s]}`;
+    $('t' + r).classList.toggle('mate', isPair(V.mode) && s % 2 === me % 2);
     $('c' + r).textContent = countText(s);
     $('a' + r).hidden = !(V.turn === s && ['bid', 'trump', 'play'].includes(V.phase));
   }
@@ -652,6 +697,7 @@ function render() {
   $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
 
   renderTrick();
+  renderDummy();
 
   // elim: iki sıra, hafif yelpaze
   let hand = V.hand || [];
@@ -659,7 +705,7 @@ function render() {
   const n = hand.length;
   const rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
   const hEl = $('hand'); hEl.innerHTML = '';
-  const myTurnPlay = V.phase === 'play' && V.turn === me && V.trick.length < 4;
+  const myTurnPlay = V.phase === 'play' && V.turn === me && V.trick.length < 4 && V.dummy !== me;
   const legal = myTurnPlay ? legalCards(V.hand, V.trick, V.trump, V.broken) : [];
   hand.forEach((c, i) => {
     const row = rows === 2 && i >= perRow ? 1 : 0, col = row ? i - perRow : i;
@@ -705,6 +751,8 @@ function render() {
   if (!pn.hidden) showMsg('', 0);
   else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} koz seçiyor...`, 99);
   else if (myTurnPlay && !V.trick.length) showMsg('Eli siz açıyorsunuz', 2);
+  else if (V.phase === 'play' && V.dummy === me && V.turn === me) showMsg('Elinizi eşiniz oynuyor', 99);
+  else if (V.phase === 'play' && V.turn === V.dummy && V.highBidder === me && V.trick.length < 4) showMsg('Eşinizin açık elinden kart seçin', 99);
   else if (V.msg) showMsg(V.msg, 2.5);
   else showMsg('', 0);
 
@@ -732,7 +780,7 @@ function showResult() {
   o.hidden = false;
   const nm = p => p === V.you ? 'SİZ' : esc(up(V.names[p]));
   // eşlide her takım tek satır: "SİZ & ZEYNEP"
-  const units = V.mode === 'esli'
+  const units = isPair(V.mode)
     ? [0, 1].map(t => ({ ps: [t, t + 2], label: [t, t + 2].sort((a, b) => (b === V.you) - (a === V.you)).map(nm).join(' & '), mine: V.you % 2 === t }))
     : [0, 1, 2, 3].map(p => ({ ps: [p], label: nm(p), mine: p === V.you }));
   const order = units.sort((a, b) => V.scores[b.ps[0]] - V.scores[a.ps[0]]);
