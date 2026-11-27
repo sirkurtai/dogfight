@@ -15,3 +15,5 @@ Bağlantı eşleştirmesi için PeerJS ücretsiz sunucusu kullanılır; oyun ver
 3D versiyon: https://sirkurtai.github.io/dogfight/3d/
 
 Batak (4 kişilik, Koz Maça / İhaleli, eksik koltuğa bot): https://sirkurtai.github.io/dogfight/batak/
+
+King (Rıfkı): Batak sayfasında oyun türü olarak King seçilir.

@@ -58,6 +58,7 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 #a0{left:50%;margin-left:-5px;bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 50px);border:5px solid transparent;border-top:7px solid #ff9a1f;border-bottom:0}
 #a1{right:calc(env(safe-area-inset-right) + 58px);top:var(--midY,34%);margin-top:-5px;border:5px solid transparent;border-left:7px solid #ff9a1f;border-right:0}
 #a3{left:calc(env(safe-area-inset-left) + 58px);top:var(--midY,34%);margin-top:-5px;border:5px solid transparent;border-right:7px solid #ff9a1f;border-left:0}
+#trumpInd.txt{width:auto;padding:0 8px;font-size:11px;font-weight:900;color:#5a2a00 !important;letter-spacing:.3px}
 #trumpInd{position:absolute;top:calc(env(safe-area-inset-top) + 8px);right:calc(env(safe-area-inset-right) + 8px);width:30px;height:30px;border-radius:6px;background:#fff;
   display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 1px 4px rgba(0,0,0,.5);z-index:3}
 #handNo{position:absolute;left:calc(env(safe-area-inset-left) + 8px);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 8px);font-size:11px;font-weight:700;color:#fff;opacity:.9;z-index:3}
@@ -94,13 +95,18 @@ small.hint{font-size:12px;opacity:.75;text-align:center}
 .card .face b{font-size:calc(var(--cw,70px)*.36);font-family:Georgia,serif;background:rgba(255,255,255,.85);border-radius:4px;padding:0 3px;line-height:1.1}
 .card .face i{font-style:normal;font-size:calc(var(--cw,70px)*.26);background:rgba(255,255,255,.85);border-radius:50%;margin-top:2px;padding:0 2px}
 #msg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + var(--wood,230px) + 58px);background:rgba(0,0,0,.55);padding:5px 12px;border-radius:12px;font-size:13px;font-weight:700;white-space:nowrap;pointer-events:none;z-index:4}
-#panel{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);background:rgba(28,28,28,.94);border-radius:16px;padding:12px;z-index:6;box-shadow:0 4px 14px rgba(0,0,0,.6);width:min(62vw,250px)}
+#panel{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 58px);transform:translateX(-50%);max-height:calc(100% - var(--wood,230px) - 120px);overflow:auto;background:rgba(28,28,28,.94);border-radius:16px;padding:12px;z-index:6;box-shadow:0 4px 14px rgba(0,0,0,.6);width:min(62vw,250px)}
 #panel .cap{text-align:center;font-size:13px;font-weight:700;margin-bottom:8px;color:#f5f5f5}
 .ob{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ob button{border:0;border-radius:7px;padding:10px 0;font-size:20px;font-weight:800;color:#5a2a00;font-family:Georgia,serif;
   background:linear-gradient(180deg,#ffd36a 0%,#f7a81c 55%,#ee8f0d 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #9a5a06}
 .ob button:active{transform:translateY(1px)}
 .ob button.pas{grid-column:1/-1;background:linear-gradient(180deg,#fff,#d9d9d9);color:#222;letter-spacing:2px;box-shadow:inset 0 1px 0 #fff,0 2px 0 #888}
+.ob.kc{grid-template-columns:repeat(2,1fr);gap:6px}
+.ob.kc button{font-size:13px;padding:7px 2px;font-family:inherit;line-height:1.15}
+.ob.kc button small{display:block;font-size:10px;font-weight:700;opacity:.8}
+.ob.kc button[disabled]{filter:grayscale(1);opacity:.35}
+.ob.kc button[data-k=koz]{grid-column:1/-1}
 .ob.suit button{font-size:34px;padding:6px 0;background:linear-gradient(180deg,#fff,#e6e6e6);box-shadow:0 2px 0 #888}
 #ovl{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25)}
 #ovl .in{width:min(82vw,330px);max-height:80vh;overflow:auto;background:rgba(30,30,30,.96);border-radius:18px;padding:16px 16px 18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.6)}
@@ -121,7 +127,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
 
 <div id="lobby">
   <h1>♠ Batak ♥</h1>
-  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 8 · Batak HD görünümü · Eşli & Açmalı · 4 kişilik · eksik koltuğa bot oturur</p>
+  <p style="font-size:12px;opacity:.7;margin-top:-8px">Sürüm 9 · Batak HD görünümü · Eşli, Açmalı & King · 4 kişilik · eksik koltuğa bot oturur</p>
   <p id="status">Oda kur, linki arkadaşlarına gönder. Gelmeyenlerin yerine bot oynar.</p>
 
   <div class="box" id="choose">
@@ -132,6 +138,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
       <button class="btn opt" data-mode="esli">Eşli</button>
       <button class="btn opt" data-mode="acik">Açmalı</button>
       <button class="btn opt" data-mode="koz">Koz Maça</button>
+      <button class="btn opt" data-mode="king">King</button>
     </div>
     <p style="text-align:center;font-size:14px">Kaç el oynansın?</p>
     <div class="row">
@@ -145,7 +152,7 @@ th,td{padding:4px 2px;text-align:center;border-bottom:1px solid rgba(255,255,255
     <p style="text-align:center;margin-top:6px;font-size:14px">veya oda koduyla katıl:</p>
     <input id="codeIn" maxlength="5" placeholder="ODA KODU" autocapitalize="characters" autocomplete="off" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace">
     <button class="btn dark" id="bJoin">Katıl</button>
-    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar. Eşli: karşılıklı oturanlar eştir (1-3 ve 2-4. koltuk), ihale 7'den başlar, takımın toplam eli sayılır. Açmalı: ihaleyi alanın eşi elini yere açar, o eli ihaleyi alan oynar.</small>
+    <small class="hint">Koz Maça: koz hep maça, herkes kaç el alacağını söyler. İhaleli: ihale 4'ten başlar, en yüksek ihaleyi veren kozu seçer ve ilk eli açar. Eşli: karşılıklı oturanlar eştir (1-3 ve 2-4. koltuk), ihale 7'den başlar, takımın toplam eli sayılır. Açmalı: ihaleyi alanın eşi elini yere açar, o eli ihaleyi alan oynar. King: 20 el; sırası gelen oyunu seçer (her oyuncu 3 ceza + 2 koz, her ceza en fazla 2 kez).</small>
     <p style="text-align:center;font-size:13px"><a href="../" style="color:#f2c14e">✈ Dogfight oyununa dön</a></p>
   </div>
 
@@ -226,6 +233,62 @@ function legalCards(hand, trick, trump, broken) {
   }
   return hand.slice();
 }
+/* ---------- KING ---------- */
+const KCON = ['rifki', 'kiz', 'erkek', 'kupa', 'soniki', 'elalmaz'];
+const KNAME = { rifki: 'Rıfkı', kiz: 'Kız almaz', erkek: 'Erkek almaz', kupa: 'Kupa almaz', soniki: 'Son iki', elalmaz: 'El almaz', koz: 'Koz' };
+const KDESC = { rifki: 'K♥ −320', kiz: 'her Q −100', erkek: 'her K/J −60', kupa: 'her kupa −30', soniki: 'son 2 el −180', elalmaz: 'her el −50', koz: 'her el +50' };
+function isPen(c, K) {
+  if (K === 'rifki') return c === 'H13';
+  if (K === 'kiz') return rankOf(c) === 12;
+  if (K === 'erkek') return rankOf(c) === 13 || rankOf(c) === 11;
+  if (K === 'kupa') return suitOf(c) === 'H';
+  return false;
+}
+function kingLegal(hand, S) {
+  const K = S.contract, trick = S.trick;
+  if (!trick.length) {
+    if (K === 'koz' && !S.broken && hand.some(c => suitOf(c) !== S.trump)) return hand.filter(c => suitOf(c) !== S.trump);
+    if ((K === 'rifki' || K === 'kupa') && !S.broken && hand.some(c => suitOf(c) !== 'H')) return hand.filter(c => suitOf(c) !== 'H');
+    return hand.slice();
+  }
+  const led = suitOf(trick[0].c), inSuit = hand.filter(c => suitOf(c) === led);
+  if (inSuit.length) {
+    if (K === 'rifki' || K === 'kiz' || K === 'erkek') {      // daha büyüğü atıldıysa ceza kartını vermek zorunlu
+      const hi = Math.max(...trick.filter(t => suitOf(t.c) === led).map(t => rankOf(t.c)));
+      const forced = inSuit.filter(c => isPen(c, K) && rankOf(c) < hi);
+      if (forced.length) return forced;
+    }
+    return inSuit;
+  }
+  if (K === 'koz') { const t = hand.filter(c => suitOf(c) === S.trump); return t.length ? t : hand.slice(); }
+  if (K === 'rifki') { if (hand.includes('H13')) return ['H13']; const h = hand.filter(c => suitOf(c) === 'H'); return h.length ? h : hand.slice(); }
+  const pens = hand.filter(c => isPen(c, K));
+  return pens.length ? pens : hand.slice();
+}
+function legalOf(hand, S) {        // S: G ya da V
+  return S.mode === 'king' ? kingLegal(hand, S) : legalCards(hand, S.trick, S.trump, S.broken);
+}
+function kingPoints(S) {           // bu eldeki puanlar (anlık)
+  const d = [0, 0, 0, 0], K = S.contract;
+  if (!K || !S.taken) return d;
+  for (let p = 0; p < 4; p++) {
+    const cs = S.taken[p], tk = S.trickWinners.filter(w => w === p).length;
+    if (K === 'rifki') d[p] = cs.includes('H13') ? -320 : 0;
+    else if (K === 'kiz') d[p] = -100 * cs.filter(c => rankOf(c) === 12).length;
+    else if (K === 'erkek') d[p] = -60 * cs.filter(c => rankOf(c) === 13 || rankOf(c) === 11).length;
+    else if (K === 'kupa') d[p] = -30 * cs.filter(c => suitOf(c) === 'H').length;
+    else if (K === 'soniki') d[p] = -180 * [11, 12].filter(i => S.trickWinners[i] === p).length;
+    else if (K === 'elalmaz') d[p] = -50 * tk;
+    else if (K === 'koz') d[p] = 50 * tk;
+  }
+  return d;
+}
+function kingOptions(S, p) {       // p oyuncusunun seçebileceği oyunlar
+  const u = S.pUsed[p], out = [];
+  if (u.pen < 3) for (const k of KCON) if (S.kUsed[k] < 2) out.push(k);
+  if (u.koz < 2) out.push('koz');
+  return out;
+}
 function trickWinner(trick, trump) {
   const led = suitOf(trick[0].c);
   let best = trick[0];
@@ -251,6 +314,7 @@ const BOTNAMES = ['Bot Ayşe', 'Bot Mehmet', 'Bot Zeynep', 'Bot Ali'];
 
 function hostStart() {
   G.seats.forEach((s, i) => { if (s.type === 'empty') { s.type = 'bot'; s.name = BOTNAMES[i]; } });
+  if (G.mode === 'king') { G.handsTotal = 20; G.kUsed = Object.fromEntries(KCON.map(k => [k, 0])); G.pUsed = [0, 1, 2, 3].map(() => ({ pen: 0, koz: 0 })); }
   G.scores = [0, 0, 0, 0]; G.history = []; G.handNo = 0; G.dealer = Math.floor(Math.random() * 4);
   G.phase = 'deal';
   startHand();
@@ -267,12 +331,17 @@ function startHand() {
   G.turn = (G.dealer + 1) % 4;
   G.phase = 'bid';
   G.msg = '';
+  if (G.mode === 'king') {
+    if (G.handNo === 0) G.declarer = G.hands.findIndex(h => h.includes('D2'));   // ilk eli 2♦ sahibi seçer
+    G.dealer = G.declarer; G.turn = G.declarer; G.phase = 'contract';
+    G.contract = null; G.taken = [[], [], [], []]; G.trickWinners = [];
+  }
   pushState();
 }
 const next = p => (p + 1) % 4;
 const isPair = m => m === 'esli' || m === 'acik';
 const minBid = m => isPair(m) ? 7 : 4;
-const MODENAME = { koz: 'Koz Maça', ihale: 'İhaleli', esli: 'Eşli', acik: 'Açmalı Eşli' };
+const MODENAME = { koz: 'Koz Maça', ihale: 'İhaleli', esli: 'Eşli', acik: 'Açmalı Eşli', king: 'King' };
 // açmalıda yerdeki elin (eşin) sırası gelince kartı ihaleyi alan seçer
 const ctrl = t => (G && G.dummy != null && t === G.dummy && G.phase === 'play') ? G.highBidder : t;
 const mate = p => (p + 2) % 4;
@@ -300,40 +369,57 @@ function act(p, a) {                 // p: hamleyi yapan koltuk
     }
     return pushState();
   }
+  if (G.phase === 'contract' && a.t === 'contract' && kingOptions(G, p).includes(a.k)) {
+    G.contract = a.k;
+    if (a.k === 'koz') { G.pUsed[p].koz++; G.phase = 'trump'; G.msg = `${G.seats[p].name} koz seçti`; }
+    else { G.pUsed[p].pen++; G.kUsed[a.k]++; G.phase = 'play'; G.trump = null; G.msg = `${KNAME[a.k]} oynanıyor`; }
+    return pushState();
+  }
   if (G.phase === 'trump' && a.t === 'trump' && SUITS.includes(a.s)) {
-    G.trump = a.s; G.phase = 'play'; G.turn = G.highBidder;
+    G.trump = a.s; G.phase = 'play'; G.turn = G.mode === 'king' ? G.declarer : G.highBidder;
     G.msg = `Koz ${SNAME[a.s]} ${SYM[a.s]}`;
     if (G.mode === 'acik') { G.dummy = mate(G.highBidder); G.msg += ` · ${G.seats[G.dummy].name} elini açtı`; }
     return pushState();
   }
   if (G.phase === 'play' && a.t === 'play' && !G.busy) {
     const seat = G.turn, hand = G.hands[seat];
-    if (!hand.includes(a.c) || !legalCards(hand, G.trick, G.trump, G.broken).includes(a.c)) return;
+    if (!hand.includes(a.c) || !legalOf(hand, G).includes(a.c)) return;
     G.hands[seat] = hand.filter(c => c !== a.c);
     G.trick.push({ p: seat, c: a.c }); G.played.push(a.c);
     if (suitOf(a.c) === G.trump) G.broken = true;
+    if (G.mode === 'king' && (G.contract === 'rifki' || G.contract === 'kupa') && suitOf(a.c) === 'H') G.broken = true;
     G.msg = '';
     if (G.trick.length < 4) { G.turn = next(seat); return pushState(); }
     const w = trickWinner(G.trick, G.trump);
     G.busy = true; G.turn = -1; pushState();
     setTimeout(() => {
       G.tricks[w]++; G.lastTrick = G.trick; G.lastWinner = w; G.trick = []; G.busy = false; G.turn = w;
+      if (G.mode === 'king') {
+        G.taken[w].push(...G.lastTrick.map(t => t.c)); G.trickWinners.push(w);
+        const K = G.contract;   // kart cezalarında son ceza kartı oynanınca el biter
+        if (['rifki', 'kiz', 'erkek', 'kupa'].includes(K) && !G.hands.some(h => h.some(c => isPen(c, K)))) return endHand();
+      }
       if (G.hands.every(h => !h.length)) endHand(); else pushState();
     }, 1300);
   }
 }
 function redeal() {                 // solo oyunda ilk elde kartları yeniden dağıt
-  if (!G || !G.solo || G.handNo !== 0 || !(G.phase === 'bid' || G.phase === 'trump')) return;
+  if (!G || !G.solo || G.handNo !== 0 || !['bid', 'trump', 'contract'].includes(G.phase)) return;
   clearTimeout(botTimer); startHand(); G.msg = 'Kartlar yeniden dağıtıldı'; pushState(); G.msg = '';
 }
 function nextHand() {
   clearTimeout(G.autoNext);
   if (!G || G.phase !== 'handEnd') return;
-  G.dealer = next(G.dealer); startHand();
+  G.dealer = next(G.dealer);
+  if (G.mode === 'king') G.declarer = next(G.declarer);
+  startHand();
 }
 function endHand() {
-  const d = [0, 0, 0, 0], notes = [];
-  if (G.mode === 'koz') {
+  let d = [0, 0, 0, 0]; const notes = [];
+  if (G.mode === 'king') {
+    d = kingPoints(G);
+    if (G.contract === 'rifki') { const w = d.findIndex(x => x < 0); if (w >= 0) notes.push(`Rıfkı ${G.seats[w].name}'e geldi!`); }
+  } else if (G.mode === 'koz') {
     for (let p = 0; p < 4; p++) {
       if (G.tricks[p] >= G.bids[p]) d[p] = G.bids[p];
       else { d[p] = -G.bids[p]; notes.push(`${G.seats[p].name} battı!`); }
@@ -353,7 +439,7 @@ function endHand() {
     }
   }
   for (let p = 0; p < 4; p++) G.scores[p] += d[p];
-  G.history.push({ d, bids: G.bids.slice(), tricks: G.tricks.slice(), hb: G.highBidder, trump: G.trump });
+  G.history.push({ d, bids: G.bids.slice(), tricks: G.tricks.slice(), hb: G.mode === 'king' ? G.declarer : G.highBidder, trump: G.trump, k: G.contract });
   G.handNo++;
   G.result = { d, notes };
   G.phase = G.handNo >= G.handsTotal ? 'over' : 'handEnd';
@@ -403,8 +489,44 @@ function isMaster(c, hand) {
   for (let x = r + 1; x <= 14; x++) { const k = s + x; if (!G.played.includes(k) && !hand.includes(k)) return false; }
   return true;
 }
+function botContract(p) {
+  const h = G.hands[p], opts = kingOptions(G, p);
+  const n = k => h.filter(k).length;
+  const hi = n(c => rankOf(c) >= 12), aces = n(c => rankOf(c) === 14);
+  const remaining = 5 - G.pUsed[p].pen - G.pUsed[p].koz;
+  let bs = 'S', be = -1; for (const s of SUITS) { const e = estimate(h, s); if (e > be) { be = e; bs = s; } }
+  if (opts.includes('koz') && (be >= 5 || remaining <= 2 - G.pUsed[p].koz)) return { t: 'contract', k: 'koz' };
+  const hearts = n(c => suitOf(c) === 'H');
+  const danger = {
+    elalmaz: hi * 45 + aces * 30, soniki: hi * 18 + aces * 25,
+    kupa: n(c => suitOf(c) === 'H' && rankOf(c) >= 10) * 40 + hearts * 6,
+    kiz: n(c => rankOf(c) === 12) * 75 + n(c => rankOf(c) >= 13) * 18,
+    erkek: n(c => rankOf(c) === 13 || rankOf(c) === 11) * 45 + aces * 20,
+    rifki: h.includes('H13') ? (hearts <= 2 ? 260 : 120) : h.includes('H14') ? 70 : 35
+  };
+  const pens = opts.filter(k => k !== 'koz');
+  if (!pens.length) return { t: 'contract', k: 'koz' };
+  return { t: 'contract', k: pens.sort((a, b) => danger[a] - danger[b])[0] };
+}
+function botPlayNeg(p) {               // King ceza oyunları: el almamaya, ceza kartını başkasına vermeye çalış
+  const hand = G.hands[p], L = legalOf(hand, G), K = G.contract, pen = c => isPen(c, K);
+  const byRank = a => a.slice().sort((x, y) => rankOf(x) - rankOf(y));
+  if (!G.trick.length) { const np = L.filter(c => !pen(c)); return { t: 'play', c: byRank(np.length ? np : L)[0] }; }
+  const led = suitOf(G.trick[0].c);
+  const hi = Math.max(...G.trick.filter(t => suitOf(t.c) === led).map(t => rankOf(t.c)));
+  const follow = L.filter(c => suitOf(c) === led);
+  if (follow.length) {
+    const losers = follow.filter(c => rankOf(c) < hi);
+    if (losers.length) { const pl = losers.filter(pen); return { t: 'play', c: byRank(pl.length ? pl : losers).pop() }; }
+    const safe = follow.filter(c => !pen(c));
+    if (G.trick.length === 3) return { t: 'play', c: byRank(safe.length ? safe : follow).pop() };   // nasılsa alıyor: büyüğü harca
+    return { t: 'play', c: byRank(safe.length ? safe : follow)[0] };
+  }
+  return { t: 'play', c: byRank(L).pop() };       // renk yok: en büyüğü / ceza kartını at
+}
 function botPlay(p) {
-  const hand = G.hands[p], L = legalCards(hand, G.trick, G.trump, G.broken);
+  if (G.mode === 'king' && G.contract !== 'koz') return botPlayNeg(p);
+  const hand = G.hands[p], L = legalOf(hand, G);
   const low = arr => arr.slice().sort((a, b) => (suitOf(a) === G.trump) - (suitOf(b) === G.trump) || rankOf(a) - rankOf(b))[0];
   if (!G.trick.length) {
     const masters = L.filter(c => isMaster(c, hand) && suitOf(c) !== G.trump);
@@ -425,12 +547,12 @@ let botTimer = null;
 function scheduleBot() {
   clearTimeout(botTimer);
   if (!G || G.busy || G.turn < 0) return;
-  if (!['bid', 'trump', 'play'].includes(G.phase)) return;
+  if (!['bid', 'trump', 'play', 'contract'].includes(G.phase)) return;
   if (G.seats[ctrl(G.turn)].type !== 'bot') return;
   botTimer = setTimeout(() => {
     const p = G.turn, who = ctrl(p);
     if (G.turn < 0 || G.seats[who].type !== 'bot') return;
-    const a = G.phase === 'bid' ? botBid(p) : G.phase === 'trump' ? botTrump(p) : botPlay(p);
+    const a = G.phase === 'bid' ? botBid(p) : G.phase === 'trump' ? botTrump(p) : G.phase === 'contract' ? botContract(p) : botPlay(p);
     act(who, a);
   }, G.phase === 'play' ? 750 : 900);
 }
@@ -445,7 +567,9 @@ function viewFor(p) {
     counts: G.hands.map(h => h.length), hand: G.hands[p], handNo: G.handNo, handsTotal: G.handsTotal,
     history: G.history, result: G.result, msg: G.msg, lastWinner: G.lastWinner,
     dummy: G.dummy, dummyHand: G.dummy != null ? G.hands[G.dummy] : null,
-    canRedeal: !!G.solo && G.handNo === 0 && (G.phase === 'bid' || G.phase === 'trump')
+    canRedeal: !!G.solo && G.handNo === 0 && ['bid', 'trump', 'contract'].includes(G.phase),
+    contract: G.contract, declarer: G.declarer, kUsed: G.kUsed, pUsed: G.pUsed, taken: G.taken, trickWinners: G.trickWinners,
+    live: G.mode === 'king' ? kingPoints(G) : null
   };
 }
 function pushState() {
@@ -533,7 +657,7 @@ function joinRoom(code) {
 }
 function onGuestData(d) {
   if (d.t === 'full') { status('Masa dolu.'); $('choose').hidden = false; $('pGuest').hidden = true; return; }
-  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${MODENAME[d.mode]} · ${d.handsTotal} el${isPair(d.mode) ? ` · eşiniz ${d.names[(d.you + 2) % 4] || 'karşı koltuk'}` : ''}`); return; }
+  if (d.t === 'lobby') { mySeat = d.you; drawSeats($('gseats'), d, d.you); status(`${MODENAME[d.mode]} · ${d.mode === 'king' ? 20 : d.handsTotal} el${isPair(d.mode) ? ` · eşiniz ${d.names[(d.you + 2) % 4] || 'karşı koltuk'}` : ''}`); return; }
   if (d.t === 'st') { mySeat = d.you; V = d; render(); }
 }
 function send(a) {
@@ -672,6 +796,7 @@ function computeLayout() {
   LY = { W, H, cw, ch, step, rowGap, hh, wood, cx: W / 2, cy: tcy, tcw, dcw, dch };
 }
 function countText(s) {
+  if (V.mode === 'king') return V.phase === 'contract' ? '' : (V.contract === 'koz' ? String(V.tricks[s]) : String(V.live ? V.live[s] : 0));
   const b = V.bids[s];
   if (V.phase === 'bid') return b == null ? '' : b === 'Pas' ? 'PAS' : String(b);
   if (V.mode === 'koz') return b != null ? `${V.tricks[s]}:${b}` : String(V.tricks[s]);
@@ -735,7 +860,7 @@ function renderDummy() {
   const dcw = LY.dcw, dch = LY.dch;
   const groups = SUITS.map(s => V.dummyHand.filter(c => suitOf(c) === s).sort((a, b) => rankOf(b) - rankOf(a))).filter(g => g.length);
   const mine = V.you === V.highBidder && V.turn === V.dummy;
-  const legal = mine ? legalCards(V.dummyHand, V.trick, V.trump, V.broken) : [];
+  const legal = mine ? legalOf(V.dummyHand, V) : [];
   const add = (c, x, y, z) => {
     const e = cardEl(c); e.style.setProperty('--cw', dcw + 'px');
     e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.zIndex = z;
@@ -778,11 +903,14 @@ function render() {
     $('t' + r).textContent = `${s === me ? 'SİZ' : up(V.names[s])}${isPair(V.mode) && s === (me + 2) % 4 ? ' (EŞ)' : ''} ${V.scores[s]}`;
     $('t' + r).classList.toggle('mate', isPair(V.mode) && s % 2 === me % 2);
     $('c' + r).textContent = countText(s);
-    $('a' + r).hidden = !(V.turn === s && ['bid', 'trump', 'play'].includes(V.phase));
+    $('a' + r).hidden = !(V.turn === s && ['bid', 'trump', 'play', 'contract'].includes(V.phase));
   }
   const ti = $('trumpInd');
   ti.hidden = !V.trump || V.phase === 'bid';
-  if (V.trump) { ti.textContent = SYM[V.trump]; ti.style.color = isRed(V.trump) ? '#d8131f' : '#111'; }
+  ti.classList.remove('txt');
+  if (V.mode === 'king' && V.contract && V.contract !== 'koz') { ti.hidden = false; ti.classList.add('txt'); }
+  if (V.mode === 'king' && V.contract && V.contract !== 'koz') ti.textContent = up(KNAME[V.contract]);
+  else if (V.trump) { ti.textContent = (V.mode === 'king' ? 'KOZ ' : '') + SYM[V.trump]; ti.style.color = isRed(V.trump) ? '#d8131f' : '#111'; }
   $('redeal').hidden = !(isHost && V.canRedeal);
   $('handNo').textContent = `${Math.min(V.handNo + 1, V.handsTotal)}/${V.handsTotal}`;
 
@@ -796,7 +924,7 @@ function render() {
   const rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
   const hEl = $('hand'); hEl.innerHTML = '';
   const myTurnPlay = V.phase === 'play' && V.turn === me && V.trick.length < 4 && V.dummy !== me;
-  const legal = myTurnPlay ? legalCards(V.hand, V.trick, V.trump, V.broken) : [];
+  const legal = myTurnPlay ? legalOf(V.hand, V) : [];
   const dummyTurn = V.phase === 'play' && V.turn === V.dummy && V.highBidder === me && V.dummyHand;
   if (selCard && !(myTurnPlay && hand.includes(selCard)) && !(dummyTurn && V.dummyHand.includes(selCard))) selCard = null;
   hand.forEach((c, i) => {
@@ -821,7 +949,17 @@ function render() {
 
   // ihale / söyleme / koz paneli
   const pn = $('panel'); pn.hidden = true; pn.innerHTML = '';
-  if (V.phase === 'bid' && V.turn === me) {
+  if (V.phase === 'contract' && V.turn === me) {
+    pn.hidden = false;
+    const opts = kingOptions(V, me), u = V.pUsed[me];
+    let h = `<div class="cap">Oyun seçin · ceza hakkı ${3 - u.pen}, koz hakkı ${2 - u.koz}</div><div class="ob kc">`;
+    for (const k of [...KCON, 'koz']) {
+      const left = k === 'koz' ? 2 - u.koz : 2 - V.kUsed[k];
+      h += `<button data-k="${k}" ${opts.includes(k) ? '' : 'disabled'}>${KNAME[k]}<small>${KDESC[k]}${k === 'koz' ? '' : ` · ${left} kaldı`}</small></button>`;
+    }
+    pn.innerHTML = h + '</div>';
+    pn.querySelectorAll('[data-k]').forEach(b => b.onclick = () => send({ t: 'contract', k: b.dataset.k }));
+  } else if (V.phase === 'bid' && V.turn === me) {
     pn.hidden = false;
     if (V.mode === 'koz') {
       pn.innerHTML = `<div class="cap">Kaç el alacaksınız? (koz ♠)</div><div class="ob">${Array.from({ length: 13 }, (_, i) => `<button data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`;
@@ -836,13 +974,14 @@ function render() {
     pn.querySelectorAll('[data-v]').forEach(b => b.onclick = () => send({ t: 'bid', v: +b.dataset.v }));
   } else if (V.phase === 'trump' && V.turn === me) {
     pn.hidden = false;
-    pn.innerHTML = `<div class="cap">İhale sizde (${V.highBid}). Koz seçin</div><div class="ob suit" style="grid-template-columns:repeat(2,1fr)">${SUITS.map(s => `<button data-s="${s}" style="color:${isRed(s) ? '#d8131f' : '#111'}">${SYM[s]}</button>`).join('')}</div>`;
+    pn.innerHTML = `<div class="cap">${V.mode === 'king' ? 'Koz rengini seçin' : `İhale sizde (${V.highBid}). Koz seçin`}</div><div class="ob suit" style="grid-template-columns:repeat(2,1fr)">${SUITS.map(s => `<button data-s="${s}" style="color:${isRed(s) ? '#d8131f' : '#111'}">${SYM[s]}</button>`).join('')}</div>`;
     pn.querySelectorAll('[data-s]').forEach(b => b.onclick = () => send({ t: 'trump', s: b.dataset.s }));
   }
 
   // kısa mesajlar
   if (!pn.hidden) showMsg('', 0);
   else if (V.phase === 'trump' && V.turn !== me) showMsg(`${V.names[V.turn]} koz seçiyor...`, 99);
+  else if (V.phase === 'contract' && V.turn !== me) showMsg(`${V.names[V.turn]} oyun seçiyor...`, 99);
   else if (myTurnPlay && selCard) showMsg('Atmak için karta tekrar dokunun', 99);
   else if (myTurnPlay && !V.trick.length) showMsg('Eli siz açıyorsunuz', 2);
   else if (V.phase === 'play' && V.dummy === me && V.turn === me) showMsg('Elinizi eşiniz oynuyor', 99);
@@ -865,7 +1004,7 @@ function ruleHint(hand) {
 function scoreTable() {
   let h = '<table><tr><th>El</th>' + V.names.map((n, i) => `<th>${i === V.you ? 'SİZ' : esc(up(n))}</th>`).join('') + '</tr>';
   V.history.forEach((r, i) => {
-    h += `<tr><td>${i + 1}${r.trump ? ' ' + SYM[r.trump] : ''}</td>` + r.d.map((x, p) => `<td style="color:${x < 0 ? '#ff7b7b' : '#bff5cf'}">${x > 0 ? '+' : ''}${x}${r.hb === p ? '*' : ''}</td>`).join('') + '</tr>';
+    h += `<tr><td>${i + 1}${r.k && r.k !== 'koz' ? ' ' + KNAME[r.k] : ''}${r.trump ? ' ' + SYM[r.trump] : ''}</td>` + r.d.map((x, p) => `<td style="color:${x < 0 ? '#ff7b7b' : '#bff5cf'}">${x > 0 ? '+' : ''}${x}${r.hb === p ? '*' : ''}</td>`).join('') + '</tr>';
   });
   return h + '<tr><th>Top.</th>' + V.scores.map(s => `<th>${s}</th>`).join('') + '</tr></table>';
 }
